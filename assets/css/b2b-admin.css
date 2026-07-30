@@ -1,0 +1,245 @@
+/* B2B Pricing settings page — full-width card layout, uses the current
+   admin color scheme's accent (--wp-admin-theme-color) instead of a fixed
+   brand color so it fits any wp-admin color scheme. */
+
+.hexwp-b2b-page {
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 20px;
+}
+
+.hexwp-b2b-page * {
+    box-sizing: border-box;
+}
+
+.hexwp-b2b-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.hexwp-b2b-header h1 {
+    margin-bottom: 4px;
+    padding: 0;
+}
+
+.hexwp-b2b-subtitle {
+    max-width: 760px;
+    color: #50575e;
+    margin: 0;
+}
+
+.hexwp-status-pill {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #f0f0f1;
+    color: #50575e;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.hexwp-status-pill.is-on {
+    background: #edfaef;
+    color: #1a7f37;
+}
+
+.hexwp-notice {
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 4px solid #72aee6;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.hexwp-notice.hexwp-notice-success {
+    border-left-color: #1a7f37;
+}
+
+.hexwp-notice.hexwp-notice-error {
+    border-left-color: #d63638;
+}
+
+/* Fixed 3-column card grid on wide screens, one column on narrow/mobile
+   admin views (WordPress collapses its own admin sidebar around 960px). */
+.hexwp-b2b-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .hexwp-b2b-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.hexwp-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.hexwp-card h2 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1d2327;
+}
+
+.hexwp-field-hint {
+    display: block;
+    color: #757575;
+    font-size: 12.5px;
+    margin-top: 2px;
+}
+
+.hexwp-field {
+    margin-top: 16px;
+}
+
+.hexwp-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.hexwp-field input[type="text"] {
+    width: 100%;
+}
+
+.hexwp-preview {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #f6f7f7;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12.5px;
+    color: #1d2327;
+}
+
+/* Toggle switch, built from a plain checkbox for accessibility (keyboard/SR
+   still see a real checkbox) with the track/thumb drawn via CSS only. */
+.hexwp-switch-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.hexwp-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 20px;
+    margin-top: 2px;
+}
+
+.hexwp-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+
+.hexwp-switch-track {
+    position: absolute;
+    inset: 0;
+    background: #c3c4c7;
+    border-radius: 999px;
+    transition: background-color 0.15s ease;
+}
+
+.hexwp-switch-track::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s ease;
+}
+
+.hexwp-switch input:checked + .hexwp-switch-track {
+    background: var(--wp-admin-theme-color, #2271b1);
+}
+
+.hexwp-switch input:checked + .hexwp-switch-track::before {
+    transform: translateX(16px);
+}
+
+.hexwp-switch input:focus-visible + .hexwp-switch-track {
+    outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+    outline-offset: 2px;
+}
+
+.hexwp-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.hexwp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 999px;
+    background: #f6f7f7;
+    cursor: pointer;
+    font-size: 13px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.hexwp-chip input {
+    margin: 0;
+}
+
+.hexwp-chip:has(input:checked) {
+    background: #f0f6fc;
+    border-color: var(--wp-admin-theme-color, #2271b1);
+}
+
+.hexwp-save-bar {
+    grid-column: 1 / -1;
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.hexwp-save-button.is-saving {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.hexwp-save-status {
+    font-size: 13px;
+    color: #50575e;
+}

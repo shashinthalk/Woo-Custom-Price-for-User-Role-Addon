@@ -1,0 +1,123 @@
+{
+  "project_name": "wp-b2b-cutomer-products-addon",
+  "scope_boundary_folders": [
+    "wp-content/plugins/wp-b2b-cutomer-products-addon"
+  ],
+  "last_updated": "2026-07-30",
+  "status": "in_progress",
+
+  "current_focus": "M1-M4 done. I1-I3 (demo-code bugs found in the M2 audit) fixed 2026-07-30: uninstall.php namespace corrected, and the entire unused AJAX demo cluster (Message_Controller, form.php, frontend.js, frontend.css) removed rather than patched, since nothing referenced it. Only open item is I4 (info-level naming mismatch between plugin header/folder name and the still-present demo text-storage feature) — no action needed unless the project owner wants the demo feature removed too.",
+
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "Requirement 01 - Setup project.json and claude.json",
+      "status": "done",
+      "completed_on": "2026-07-30",
+      "notes": "Read every file in the plugin (index.php, uninstall.php, all of includes/, templates/, assets/, docs/, README.md, LICENSE). Populated project.json with a real file/function map and populated this file's milestones/known_issues below."
+    },
+    {
+      "id": "M2",
+      "title": "Requirement 02 - Security check and human-readable/maintainable code review",
+      "status": "done",
+      "completed_on": "2026-07-30",
+      "notes": "Reviewed all PHP for SQLi/XSS/CSRF/capability issues. Active code paths (Admin_Page form handling, Data_Repository queries, Shortcode output) use prepared statements ($wpdb->prepare / $wpdb->insert with format arrays), nonces (wp_nonce_field/wp_verify_nonce), capability checks (current_user_can('manage_options')), and consistent output escaping (esc_html/esc_attr/esc_url) — no active injection/XSS/CSRF issues found. Found 1 real functional bug and 2 dead-code hygiene issues, logged as I1-I3 (all fixed in M5)."
+    },
+    {
+      "id": "M3",
+      "title": "Requirement 03 - Set scope boundary to this folder (wp-b2b-cutomer-products-addon)",
+      "status": "done",
+      "completed_on": "2026-07-30",
+      "notes": "Filled in CLAUDE.md §0 'Allowed working folders' with 'wp-content/plugins/wp-b2b-cutomer-products-addon' (this folder, all subfolders). Mirrored the same value into project.json and this file's scope_boundary_folders. No files outside this folder were read or modified during this session."
+    },
+    {
+      "id": "M4",
+      "title": "Requirement (prompted) - Implement WooCommerce B2B pricing + admin settings page",
+      "status": "done",
+      "completed_on": "2026-07-30",
+      "notes": "Project owner supplied procedural WooCommerce hook code for per-product/variation B2B pricing, B2B tax exemption, and price suffixes, and asked for it to be implemented plus an admin options page. Rebuilt it as OOP classes matching the plugin's existing HexWp\\ autoloaded conventions: includes/WooCommerce/class-settings.php (option storage + sanitization), class-customer.php (B2B detection), class-variation-price-field.php + class-product-price-field.php (admin price inputs, with an added current_user_can('edit_post') defense-in-depth check before saving), class-price-engine.php (price/price-html/tax-display/tax-exempt/price-suffix filters). Added includes/Admin/class-b2b-settings-page.php + templates/b2b-settings-page.php (nonce-protected form; capability manage_options, not manage_woocommerce, so it stays reachable if WooCommerce is deactivated) to make roles, the B2B user-meta key, tax exemption, and both suffix strings admin-configurable instead of hardcoded. Wired into includes/class-plugin.php: B2B_Settings_Page always registers; the three WooCommerce-dependent classes only register on plugins_loaded if class_exists('WooCommerce'). Master 'enabled' setting defaults to false. Verified with `php -l` across all files (clean)."
+    },
+    {
+      "id": "M5",
+      "title": "Fix known_issues I1-I3 from the M2 security/maintainability audit",
+      "status": "done",
+      "completed_on": "2026-07-30",
+      "notes": "I1: uninstall.php now calls \\HexWp\\Uninstaller::uninstall() (was \\SAPDemo\\Uninstaller, a namespace that doesn't exist) — uninstall no longer fatal-errors and the wp_sap_entries table is actually dropped. I2 + I3: rather than patching the undefined-constant bug in templates/form.php, deleted the whole unused AJAX demo cluster since a repo-wide grep confirmed nothing referenced it outside README.md: includes/Ajax/class-message-controller.php, templates/form.php, assets/js/frontend.js, assets/css/frontend.css, plus the now-empty includes/Ajax/, assets/js/, assets/css/, assets/ directories. Updated README.md (Features, Usage, Project Structure, Development Notes, Quality Checks) and project.json (removed the 4 deleted-file entries, updated directory_structure, updated call sites in class-plugin.php/class-data-repository.php/class-uninstaller.php entries) to match. Verified with `php -l` across all remaining files (clean) and a JSON validity check on claude.json/project.json."
+    }
+  ],
+
+  "known_issues": [
+    {
+      "id": "I1",
+      "description": "uninstall.php calls \\SAPDemo\\Uninstaller::uninstall(), but the actual class is \\HexWp\\Uninstaller (see includes/class-uninstaller.php). This will fatal-error when WordPress runs uninstall.php, so the plugin's DB table (wp_sap_entries) is never dropped on uninstall — data is silently left behind and the user gets an uninstall error.",
+      "severity": "high",
+      "status": "fixed",
+      "fixed_on": "2026-07-30",
+      "resolution": "uninstall.php now calls \\HexWp\\Uninstaller::uninstall()."
+    },
+    {
+      "id": "I2",
+      "description": "templates/form.php references an undefined constant SAP_DEMO_TEXT_DOMAIN (should be HEX_WP_TEXT_DOMAIN, defined in index.php). This template is currently never require()'d by any controller, so it's dormant, but if it's ever wired up as-is it will throw a fatal Error in PHP 8 (undefined constant).",
+      "severity": "medium",
+      "status": "fixed",
+      "fixed_on": "2026-07-30",
+      "resolution": "templates/form.php deleted along with the rest of the unused AJAX demo cluster (see I3) rather than patched, since it had no callers."
+    },
+    {
+      "id": "I3",
+      "description": "includes/Ajax/class-message-controller.php (AJAX save endpoint) and assets/js/frontend.js + assets/css/frontend.css are unused: Message_Controller is never instantiated in includes/class-plugin.php, so wp_ajax_sap_save_message never registers, and frontend.js/frontend.css are never enqueued anywhere. This matches the README's own note that they're template leftovers, but they add dead surface area (and a nonce-checked AJAX handler that looks live but isn't) that should either be wired up or removed for maintainability.",
+      "severity": "low",
+      "status": "fixed",
+      "fixed_on": "2026-07-30",
+      "resolution": "Deleted includes/Ajax/class-message-controller.php, assets/js/frontend.js, assets/css/frontend.css and the now-empty includes/Ajax/, assets/js/, assets/css/, assets/ directories. Confirmed via repo-wide grep that nothing else referenced these files before deleting."
+    },
+    {
+      "id": "I4",
+      "description": "Naming/purpose mismatch: index.php's plugin header says 'Woo Custom Price for User Role Addon' (implying WooCommerce custom pricing per user role), the folder is named wp-b2b-cutomer-products-addon (implying B2B customer/product logic), but the actual code is an unmodified 'Hexnity WP Plugin Template' demo that just saves/lists arbitrary text strings — there is no WooCommerce, pricing, user-role, or B2B product logic anywhere yet. This is expected for a fresh template but the project owner should confirm the real feature scope before further building.",
+      "severity": "info",
+      "status": "open"
+    }
+  ],
+
+  "blockers": [],
+
+  "needs_resync": [],
+
+  "decisions_log": [
+    {
+      "date": "2026-07-30",
+      "decision": "Set the scope boundary (CLAUDE.md §0, project.json, this file) to 'wp-content/plugins/wp-b2b-cutomer-products-addon' — i.e. this plugin's own folder, all subfolders included.",
+      "reason": "Explicit project owner requirement 03: 'set boundaries to this folder'. This is the plugin's root folder inside the larger WordPress install, so it is the natural sandbox wall per CLAUDE.md §0's intent."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "Initially did not auto-fix I1-I3, logging them as known_issues instead of editing code; project owner then explicitly confirmed ('yes') to fix them, so they were fixed in M5 the same day.",
+      "reason": "CLAUDE.md §2 requirement 02 asked to 'check' security and maintainability, not to silently rewrite files, so fixes were held until the project owner confirmed them rather than applied unprompted."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "For I2/I3, deleted the unused AJAX demo cluster (Message_Controller, form.php, frontend.js, frontend.css) instead of just fixing the undefined-constant bug in form.php.",
+      "reason": "A repo-wide grep confirmed these files had zero live callers (only README.md mentioned them, as documented dead code). Patching a bug in permanently-unreachable code adds no value and leaves confusing dead surface area; per CLAUDE.md's own guidance this repo should stay human-maintainable, and deleting confirmed-unused code is safer than leaving a half-fixed AJAX endpoint that looks live but isn't."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "Built the B2B pricing feature (M4) as new OOP classes under includes/WooCommerce/ instead of dropping the supplied procedural functions directly into a plugin file.",
+      "reason": "Matches the existing codebase convention (HexWp\\ namespace, autoloaded class-per-file, repository/service style) so the new feature is maintainable alongside the rest of the plugin rather than a stylistic outlier."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "Made B2B roles, the B2B user-meta key, tax exemption, and both price-suffix strings admin-configurable (new 'B2B Pricing' settings page) instead of hardcoding them as in the supplied snippet.",
+      "reason": "Project owner explicitly asked to 'create admin page options for these'. Hardcoded German suffix text and an administrator-role-only check would not generalize to other stores/languages."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "B2B pricing master toggle defaults to disabled (enabled=false), and the pricing/field classes only register their hooks when class_exists('WooCommerce') is true.",
+      "reason": "Safety: a plugin that changes live prices and tax handling should never activate that behavior silently on install/update, and referencing WooCommerce functions (wc_format_decimal, WC(), etc.) without WooCommerce active would fatal-error."
+    },
+    {
+      "date": "2026-07-30",
+      "decision": "Settings page capability is manage_options, not manage_woocommerce (which the supplied context didn't specify).",
+      "reason": "manage_woocommerce is a capability WooCommerce grants to roles on activation; if WooCommerce is ever deactivated, gating our own settings page behind it would lock administrators out of their own plugin settings."
+    }
+  ]
+}

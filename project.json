@@ -1,0 +1,412 @@
+{
+  "project_overview": {
+    "name": "wp-b2b-cutomer-products-addon",
+    "scope_boundary_folders": [
+      "wp-content/plugins/wp-b2b-cutomer-products-addon"
+    ],
+    "description": "Started as an unmodified copy of the 'Hexnity WP Plugin Template' boilerplate (MIT, Hexnity 2026) — an admin page that saves a single text entry to a custom DB table (wp_sap_entries) plus a [sap_messages] shortcode. That demo code is still present but unrelated to the plugin's real purpose. The real feature, added 2026-07-30, is WooCommerce B2B pricing: a per-product/variation '_b2b_price' meta field, a HexWp\\WooCommerce\\Customer role/meta check, price + price-html + tax-display/exemption + price-suffix filters, and an admin 'B2B Pricing' settings page to configure roles/meta key/tax/suffix behavior. All B2B pricing hooks only register when WooCommerce is active.",
+    "entry_point": "index.php",
+    "tech_stack": ["PHP 7.4+/8.x", "WordPress 6.x plugin API", "WooCommerce (optional dependency, feature-detected via class_exists('WooCommerce'))", "$wpdb (MySQL/MariaDB)"]
+  },
+
+  "directory_structure": {
+    "includes/": "PSR-4-ish autoloaded classes under namespace HexWp (see class-autoloader.php for the mapping rule).",
+    "includes/Admin/": "Admin-facing UI controllers: the demo 'Text Storage' page and the real 'B2B Pricing' settings page.",
+    "includes/Frontend/": "Public-facing shortcode renderer (demo feature).",
+    "includes/WooCommerce/": "B2B pricing feature: Settings (option storage), Customer (B2B detection), Variation_Price_Field / Product_Price_Field (admin price input), Price_Engine (price/tax/suffix filters).",
+    "templates/": "Plain PHP view partials, `require`d by controllers (admin-page.php and b2b-settings-page.php).",
+    "docs/": "Static HTML documentation shown via an admin submenu iframe."
+  },
+
+  "files": [
+    {
+      "path": "index.php",
+      "purpose": "Plugin bootstrap. Defines HEX_WP_* constants, registers the autoloader, activation/deactivation hooks, and boots HexWp\\Plugin.",
+      "exports": ["hex_wp_run_plugin"],
+      "depends_on": ["includes/class-autoloader.php", "includes/class-activator.php", "includes/class-deactivator.php", "includes/class-plugin.php"],
+      "functions": [
+        {
+          "name": "hex_wp_run_plugin",
+          "signature": "hex_wp_run_plugin(): void",
+          "description": "Instantiates HexWp\\Plugin and calls run(). Called once at file load time.",
+          "called_by": ["index.php (top-level)"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-autoloader.php",
+      "purpose": "PSR-4-ish autoloader for the HexWp\\ namespace. Maps HexWp\\Foo\\Bar_Baz -> includes/Foo/class-bar-baz.php.",
+      "exports": ["HexWp\\Autoloader"],
+      "depends_on": [],
+      "functions": [
+        {
+          "name": "Autoloader::register",
+          "signature": "register(): void",
+          "description": "Registers autoload() with spl_autoload_register.",
+          "called_by": ["index.php"]
+        },
+        {
+          "name": "Autoloader::autoload",
+          "signature": "autoload(string $class_name): void",
+          "description": "Converts a HexWp\\... class name to a includes/.../class-*.php path and requires it if present.",
+          "called_by": ["spl_autoload_register callback"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-plugin.php",
+      "purpose": "Runtime orchestrator. Wires one Data_Repository instance into Admin_Page and Shortcode, registers the B2B settings page, and (if WooCommerce is active) registers the B2B pricing hooks.",
+      "exports": ["HexWp\\Plugin"],
+      "depends_on": ["includes/class-data-repository.php", "includes/Admin/class-admin-page.php", "includes/Admin/class-b2b-settings-page.php", "includes/Frontend/class-shortcode.php", "includes/WooCommerce/class-variation-price-field.php", "includes/WooCommerce/class-product-price-field.php", "includes/WooCommerce/class-price-engine.php"],
+      "functions": [
+        {
+          "name": "Plugin::run",
+          "signature": "run(): void",
+          "description": "Hooks load_text_domain to init, calls register_hooks() on admin_page/shortcode/b2b_settings_page, and hooks maybe_register_b2b_pricing to plugins_loaded.",
+          "called_by": ["index.php:hex_wp_run_plugin"]
+        },
+        {
+          "name": "Plugin::maybe_register_b2b_pricing",
+          "signature": "maybe_register_b2b_pricing(): void",
+          "description": "Checks class_exists('WooCommerce'); if true, constructs and registers Variation_Price_Field, Product_Price_Field, and Price_Engine. Run on plugins_loaded so WooCommerce (if present) has already loaded.",
+          "called_by": ["plugins_loaded action"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-activator.php",
+      "purpose": "Plugin activation hook target. Creates the DB table on activation.",
+      "exports": ["HexWp\\Activator"],
+      "depends_on": ["includes/class-data-repository.php"],
+      "functions": [
+        {
+          "name": "Activator::activate",
+          "signature": "activate(): void",
+          "description": "Calls Data_Repository::create_table(). Registered via register_activation_hook in index.php.",
+          "called_by": ["WordPress activation hook"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-deactivator.php",
+      "purpose": "Plugin deactivation hook target. Intentionally a no-op — data is preserved on deactivate, only removed on uninstall.",
+      "exports": ["HexWp\\Deactivator"],
+      "depends_on": [],
+      "functions": [
+        {
+          "name": "Deactivator::deactivate",
+          "signature": "deactivate(): void",
+          "description": "No-op by design.",
+          "called_by": ["WordPress deactivation hook"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-uninstaller.php",
+      "purpose": "Uninstall logic. Drops the plugin's DB table.",
+      "exports": ["HexWp\\Uninstaller"],
+      "depends_on": ["includes/class-data-repository.php"],
+      "functions": [
+        {
+          "name": "Uninstaller::uninstall",
+          "signature": "uninstall(): void",
+          "description": "Calls Data_Repository::drop_table(). Called from uninstall.php.",
+          "called_by": ["uninstall.php"]
+        }
+      ]
+    },
+    {
+      "path": "includes/class-data-repository.php",
+      "purpose": "Sole data-access layer for the wp_sap_entries custom table. All SQL lives here.",
+      "exports": ["HexWp\\Data_Repository"],
+      "depends_on": [],
+      "functions": [
+        {
+          "name": "Data_Repository::get_table_name",
+          "signature": "get_table_name(): string",
+          "description": "Returns $wpdb->prefix . 'sap_entries'.",
+          "called_by": ["Data_Repository (internal)", "class-uninstaller.php"]
+        },
+        {
+          "name": "Data_Repository::create_table",
+          "signature": "create_table(): void",
+          "description": "Runs dbDelta() to create the table (id, time, message). Called on activation.",
+          "called_by": ["class-activator.php"]
+        },
+        {
+          "name": "Data_Repository::get_recent_entries",
+          "signature": "get_recent_entries(int $limit = 10): array",
+          "description": "Returns the most recent entries via a $wpdb->prepare()'d SELECT ... LIMIT %d. $limit is absint()'d and defaults to 10 if < 1.",
+          "called_by": ["Admin/class-admin-page.php:render_page", "Frontend/class-shortcode.php:render_messages"]
+        },
+        {
+          "name": "Data_Repository::insert_message",
+          "signature": "insert_message(string $message): bool",
+          "description": "Inserts a row via $wpdb->insert() with an explicit %s/%s format array (parameterized, not raw SQL).",
+          "called_by": ["Admin/class-admin-page.php:maybe_handle_form_submission"]
+        },
+        {
+          "name": "Data_Repository::drop_table",
+          "signature": "drop_table(): void",
+          "description": "DROP TABLE IF EXISTS on the plugin's table. Table name is not user input (built from $wpdb->prefix), so no injection risk despite string interpolation.",
+          "called_by": ["class-uninstaller.php"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Admin/class-admin-page.php",
+      "purpose": "Registers the wp-admin menu + submenu, renders the admin form/list page and the embedded documentation page, and handles the admin form POST.",
+      "exports": ["HexWp\\Admin\\Admin_Page"],
+      "depends_on": ["includes/class-data-repository.php", "templates/admin-page.php"],
+      "functions": [
+        {
+          "name": "Admin_Page::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks register_menu to admin_menu.",
+          "called_by": ["class-plugin.php:run"]
+        },
+        {
+          "name": "Admin_Page::register_menu",
+          "signature": "register_menu(): void",
+          "description": "Adds the top-level 'Text Storage' menu page and a 'Documentation' submenu page, both gated on manage_options.",
+          "called_by": ["admin_menu action"]
+        },
+        {
+          "name": "Admin_Page::render_page",
+          "signature": "render_page(): void",
+          "description": "Capability check, processes any form submission, loads recent entries, and requires templates/admin-page.php.",
+          "called_by": ["add_menu_page callback"]
+        },
+        {
+          "name": "Admin_Page::render_documentation_page",
+          "signature": "render_documentation_page(): void",
+          "description": "Capability check, then echoes an iframe pointing at docs/documentation.html (URL built with plugins_url(), escaped with esc_url()).",
+          "called_by": ["add_submenu_page callback"]
+        },
+        {
+          "name": "Admin_Page::maybe_handle_form_submission",
+          "signature": "maybe_handle_form_submission(): array|null",
+          "description": "Verifies nonce 'sap_admin_save_text', sanitizes $_POST['sap_message'] with wp_unslash()+sanitize_text_field()+trim(), rejects empty text, inserts via repository, returns a notice array for the template.",
+          "called_by": ["Admin_Page::render_page"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Frontend/class-shortcode.php",
+      "purpose": "Public shortcode renderer for [sap_messages] (alias [sap_form]).",
+      "exports": ["HexWp\\Frontend\\Shortcode"],
+      "depends_on": ["includes/class-data-repository.php"],
+      "functions": [
+        {
+          "name": "Shortcode::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Registers both shortcode tags to render_messages.",
+          "called_by": ["class-plugin.php:run"]
+        },
+        {
+          "name": "Shortcode::render_messages",
+          "signature": "render_messages(array $atts): string",
+          "description": "Reads/clamps the 'limit' attribute (1-50, default 10), fetches entries, and outputs escaped HTML (esc_html throughout) via output buffering.",
+          "called_by": ["WordPress shortcode engine"]
+        }
+      ]
+    },
+    {
+      "path": "includes/WooCommerce/class-settings.php",
+      "purpose": "Single source of truth for B2B pricing configuration. Reads/writes one option (hex_wp_b2b_pricing_settings) and owns all sanitization for it.",
+      "exports": ["HexWp\\WooCommerce\\Settings"],
+      "depends_on": [],
+      "functions": [
+        {
+          "name": "Settings::defaults",
+          "signature": "defaults(): array",
+          "description": "enabled=false, roles=['administrator'], meta_key='is_b2b', tax_exempt_enabled=true, price_suffix_enabled=false, plus default suffix strings. 'enabled' defaults false so installing/updating the plugin never silently changes live pricing.",
+          "called_by": ["Settings::get", "Settings::update"]
+        },
+        {
+          "name": "Settings::get",
+          "signature": "get(): array",
+          "description": "get_option() merged over defaults() via wp_parse_args().",
+          "called_by": ["Customer::is_b2b", "Price_Engine (all methods)", "Admin\\class-b2b-settings-page.php"]
+        },
+        {
+          "name": "Settings::update",
+          "signature": "update(array $raw): bool",
+          "description": "Validates roles against wp_roles(), sanitize_key()s the meta key, sanitize_text_field()s the suffix strings, casts checkboxes to bool, then update_option()s the result. The only place settings are sanitized.",
+          "called_by": ["Admin\\class-b2b-settings-page.php:maybe_handle_form_submission"]
+        }
+      ]
+    },
+    {
+      "path": "includes/WooCommerce/class-customer.php",
+      "purpose": "Answers 'is the current/given user a B2B customer?' based on Settings.",
+      "exports": ["HexWp\\WooCommerce\\Customer"],
+      "depends_on": ["includes/WooCommerce/class-settings.php"],
+      "functions": [
+        {
+          "name": "Customer::is_b2b",
+          "signature": "is_b2b(?WP_User $user = null): bool",
+          "description": "False immediately if the feature is disabled or the user isn't logged in. Otherwise true if the user's role intersects Settings roles, or their meta_key value === 'yes'.",
+          "called_by": ["Price_Engine (all methods)"]
+        }
+      ]
+    },
+    {
+      "path": "includes/WooCommerce/class-variation-price-field.php",
+      "purpose": "Renders and saves the '_b2b_price' field on the product-variation panel (variable products).",
+      "exports": ["HexWp\\WooCommerce\\Variation_Price_Field"],
+      "depends_on": ["includes/WooCommerce/class-settings.php"],
+      "functions": [
+        {
+          "name": "Variation_Price_Field::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_field to woocommerce_variation_options_pricing, save_field to woocommerce_save_product_variation.",
+          "called_by": ["class-plugin.php:maybe_register_b2b_pricing"]
+        },
+        {
+          "name": "Variation_Price_Field::render_field",
+          "signature": "render_field(int $loop, array $variation_data, WP_Post $variation): void",
+          "description": "woocommerce_wp_text_input() bound to _b2b_price[{loop}], prefilled from get_post_meta().",
+          "called_by": ["WooCommerce variation panel render"]
+        },
+        {
+          "name": "Variation_Price_Field::save_field",
+          "signature": "save_field(int $variation_id, int $i): void",
+          "description": "current_user_can('edit_post') check (defense in depth on top of WooCommerce's own nonce/capability gate on this hook), then wc_format_decimal(sanitize_text_field(wp_unslash())) before update_post_meta().",
+          "called_by": ["WooCommerce variation save handler"]
+        }
+      ]
+    },
+    {
+      "path": "includes/WooCommerce/class-product-price-field.php",
+      "purpose": "Renders and saves the '_b2b_price' field on the Pricing tab for simple products.",
+      "exports": ["HexWp\\WooCommerce\\Product_Price_Field"],
+      "depends_on": ["includes/WooCommerce/class-settings.php"],
+      "functions": [
+        {
+          "name": "Product_Price_Field::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_field to woocommerce_product_options_pricing, save_field to woocommerce_process_product_meta.",
+          "called_by": ["class-plugin.php:maybe_register_b2b_pricing"]
+        },
+        {
+          "name": "Product_Price_Field::render_field",
+          "signature": "render_field(): void",
+          "description": "Same pattern as Variation_Price_Field but keyed on the product post ID directly (global $post).",
+          "called_by": ["WooCommerce product Pricing tab render"]
+        },
+        {
+          "name": "Product_Price_Field::save_field",
+          "signature": "save_field(int $post_id): void",
+          "description": "Same capability check + sanitize + update_post_meta pattern as Variation_Price_Field::save_field.",
+          "called_by": ["WooCommerce product save handler"]
+        }
+      ]
+    },
+    {
+      "path": "includes/WooCommerce/class-price-engine.php",
+      "purpose": "All B2B pricing/tax/suffix filters. Reads Settings::get() fresh on every call so admin changes apply immediately without a cache-invalidation step.",
+      "exports": ["HexWp\\WooCommerce\\Price_Engine"],
+      "depends_on": ["includes/WooCommerce/class-settings.php", "includes/WooCommerce/class-customer.php"],
+      "functions": [
+        {
+          "name": "Price_Engine::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Registers all filters/actions listed in this file's other function entries.",
+          "called_by": ["class-plugin.php:maybe_register_b2b_pricing"]
+        },
+        {
+          "name": "Price_Engine::apply_b2b_price",
+          "signature": "apply_b2b_price($price, $product)",
+          "description": "Filters woocommerce_product_get_price and woocommerce_product_variation_get_price. Returns the '_b2b_price' meta value (if set and numeric) for B2B customers, else the original price.",
+          "called_by": ["WooCommerce price calculation"]
+        },
+        {
+          "name": "Price_Engine::apply_b2b_price_html",
+          "signature": "apply_b2b_price_html($price_html, $product)",
+          "description": "Filters woocommerce_get_price_html so the displayed price string (with currency formatting) reflects the B2B price too.",
+          "called_by": ["WooCommerce price HTML rendering"]
+        },
+        {
+          "name": "Price_Engine::filter_tax_display",
+          "signature": "filter_tax_display($display)",
+          "description": "Filters woocommerce_tax_display_shop / _cart. Forces 'excl' for B2B customers when tax_exempt_enabled is on.",
+          "called_by": ["WooCommerce tax display logic"]
+        },
+        {
+          "name": "Price_Engine::maybe_set_tax_exempt",
+          "signature": "maybe_set_tax_exempt(): void",
+          "description": "Hooked to woocommerce_before_calculate_totals and template_redirect. Sets WC()->customer->set_is_vat_exempt(true) for B2B customers when tax_exempt_enabled is on.",
+          "called_by": ["WooCommerce cart totals calculation", "template_redirect"]
+        },
+        {
+          "name": "Price_Engine::filter_price_suffix",
+          "signature": "filter_price_suffix($suffix, $product)",
+          "description": "Filters woocommerce_get_price_suffix. Only overrides the suffix when price_suffix_enabled is on; otherwise passes the theme/WooCommerce default through unchanged.",
+          "called_by": ["WooCommerce price suffix rendering"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Admin/class-b2b-settings-page.php",
+      "purpose": "Admin menu page ('B2B Pricing') for configuring HexWp\\WooCommerce\\Settings. Uses manage_options (not manage_woocommerce) so it stays reachable even if WooCommerce is deactivated.",
+      "exports": ["HexWp\\Admin\\B2B_Settings_Page"],
+      "depends_on": ["includes/WooCommerce/class-settings.php", "templates/b2b-settings-page.php"],
+      "functions": [
+        {
+          "name": "B2B_Settings_Page::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks register_menu to admin_menu.",
+          "called_by": ["class-plugin.php:run"]
+        },
+        {
+          "name": "B2B_Settings_Page::register_menu",
+          "signature": "register_menu(): void",
+          "description": "add_menu_page('hex-wp-b2b-pricing', ...), capability manage_options.",
+          "called_by": ["admin_menu action"]
+        },
+        {
+          "name": "B2B_Settings_Page::render_page",
+          "signature": "render_page(): void",
+          "description": "Capability check, processes any form submission, loads current settings + role list + WooCommerce-active flag, requires templates/b2b-settings-page.php.",
+          "called_by": ["add_menu_page callback"]
+        },
+        {
+          "name": "B2B_Settings_Page::maybe_handle_form_submission",
+          "signature": "maybe_handle_form_submission(): array|null",
+          "description": "Verifies nonce 'hex_wp_b2b_settings_save', then passes wp_unslash()'d raw POST values to Settings::update() (which does the actual sanitization) and returns a notice array for the template.",
+          "called_by": ["B2B_Settings_Page::render_page"]
+        }
+      ]
+    },
+    {
+      "path": "templates/admin-page.php",
+      "purpose": "View for the admin 'Text Storage' page: notice banner, single-field form with nonce, and a read-only table of recent entries. All dynamic output passes through esc_html/esc_attr/esc_url.",
+      "exports": [],
+      "depends_on": [],
+      "functions": []
+    },
+    {
+      "path": "templates/b2b-settings-page.php",
+      "purpose": "View for the 'B2B Pricing' admin settings page: enable toggle, role checklist, meta key input, tax exemption toggle, and custom price-suffix inputs. All dynamic output passes through esc_html/esc_attr; checkbox state via checked().",
+      "exports": [],
+      "depends_on": [],
+      "functions": []
+    },
+    {
+      "path": "uninstall.php",
+      "purpose": "WordPress uninstall entry point. Calls \\HexWp\\Uninstaller::uninstall() to drop the plugin's DB table.",
+      "exports": [],
+      "depends_on": ["includes/class-data-repository.php", "includes/class-uninstaller.php"],
+      "functions": []
+    }
+  ],
+
+  "conventions": {
+    "naming": "Namespace HexWp\\...; classes PascalCase/Snake-mixed (e.g. Data_Repository, Admin_Page) matching filenames class-<kebab-case>.php; functions/methods snake_case; constants HEX_WP_*.",
+    "error_handling": "No exceptions used. Repository methods return bool/array and callers branch on the result; user-facing errors are returned as ['type' => 'error'|'success', 'message' => ...] notice arrays.",
+    "testing": "No test suite present. README suggests php -l lint checks only; no PHPUnit/WP test scaffolding exists yet."
+  },
+
+  "last_full_resync": "2026-07-30"
+}
