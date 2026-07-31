@@ -19,6 +19,12 @@ class Price_Engine {
         \add_filter('woocommerce_product_variation_get_price', [$this, 'apply_b2b_price'], 10, 2);
         \add_filter('woocommerce_get_price_html', [$this, 'apply_b2b_price_html'], 10, 2);
 
+        // Variable products send their price to the browser as JSON
+        // (display_price/price_html per variation) built by WooCommerce
+        // core, not through woocommerce_get_price_html — so the price shown
+        // after picking a variation needs its own filter.
+        \add_filter('woocommerce_available_variation', [$this, 'apply_b2b_price_to_variation_data'], 10, 3);
+
         // Show/charge tax excluded for B2B customers, if enabled.
         \add_filter('woocommerce_tax_display_shop', [$this, 'filter_tax_display']);
         \add_filter('woocommerce_tax_display_cart', [$this, 'filter_tax_display']);
@@ -57,9 +63,49 @@ class Price_Engine {
         }
 
         // Rebuild the formatted price (currency symbol, decimals) from the B2B price.
-        $price = \wc_price(\wc_get_price_to_display($product, ['price' => $b2b_price]));
+        $price = \wc_price($this->get_display_price($product, $b2b_price));
 
         return $price . $product->get_price_suffix();
+    }
+
+    /**
+     * Applies the same B2B price to a variable product's per-variation JSON
+     * data (display_price / price_html), which WooCommerce builds itself
+     * and sends to the browser — this is what actually updates the price
+     * shown after a variation is selected, so it needs its own override
+     * rather than relying on the woocommerce_get_price_html filter above.
+     */
+    public function apply_b2b_price_to_variation_data($variation_data, $product, $variation) {
+        if (!Customer::is_b2b()) {
+            return $variation_data;
+        }
+
+        $b2b_price = \get_post_meta($variation->get_id(), Settings::PRICE_META_KEY, true);
+        if ($b2b_price === '' || !\is_numeric($b2b_price)) {
+            return $variation_data;
+        }
+
+        $display_price = $this->get_display_price($variation, $b2b_price);
+
+        $variation_data['display_price'] = $display_price;
+        $variation_data['display_regular_price'] = $display_price;
+        // get_price_suffix() re-triggers the woocommerce_get_price_suffix
+        // filter below, so it already reflects the same on/off settings.
+        $variation_data['price_html'] = '<span class="price">' . \wc_price($display_price) . $variation->get_price_suffix() . '</span>';
+
+        return $variation_data;
+    }
+
+    // Decide incl./excl. tax from our own tax_exempt_enabled setting rather
+    // than wc_get_price_to_display(), which reads WooCommerce's site-wide
+    // tax display option and doesn't reliably follow a manually-injected
+    // price override like the B2B price.
+    private function get_display_price($product, $price) {
+        $settings = Settings::get();
+
+        return !empty($settings['tax_exempt_enabled'])
+            ? \wc_get_price_excluding_tax($product, ['price' => $price])
+            : \wc_get_price_including_tax($product, ['price' => $price]);
     }
 
     // Tells WooCommerce whether to display prices "incl." or "excl." tax.
@@ -91,12 +137,25 @@ class Price_Engine {
     public function filter_price_suffix($suffix, $product) {
         $settings = Settings::get();
 
-        if (empty($settings['price_suffix_enabled'])) {
-            return $suffix; // feature off: keep WooCommerce's/theme's default suffix
+        // The suffix text is specifically about tax status ("zzgl./inkl.
+        // MwSt."), so it only makes sense while tax exemption is actually
+        // in play. Tax exemption off: same suffix as everyone else gets.
+        if (empty($settings['price_suffix_enabled']) || empty($settings['tax_exempt_enabled'])) {
+            return $suffix;
         }
 
-        // Leading space so the suffix doesn't run into the price (WooCommerce's
-        // own default suffix markup includes this space; ours has to add it back).
-        return ' ' . (Customer::is_b2b() ? $settings['price_suffix_b2b'] : $settings['price_suffix_regular']);
+        // Only override the suffix for products that actually have a B2B
+        // price set — otherwise leave the default suffix alone, same as price.
+        $b2b_price = \get_post_meta($product->get_id(), Settings::PRICE_META_KEY, true);
+        if ($b2b_price === '' || !\is_numeric($b2b_price)) {
+            return $suffix;
+        }
+
+        $text = Customer::is_b2b() ? $settings['price_suffix_b2b'] : $settings['price_suffix_regular'];
+
+        // Same wrapper WooCommerce's own default suffix uses (' <small
+        // class="woocommerce-price-suffix">...</small>'), so theme styling
+        // targeting that class still applies to ours.
+        return ' <small class="woocommerce-price-suffix">' . \esc_html($text) . '</small>';
     }
 }

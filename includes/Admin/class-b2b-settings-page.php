@@ -123,6 +123,8 @@ class B2B_Settings_Page {
             'price_suffix_enabled' => isset($raw['price_suffix_enabled']),
             'price_suffix_b2b'     => isset($raw['price_suffix_b2b']) ? $raw['price_suffix_b2b'] : '',
             'price_suffix_regular' => isset($raw['price_suffix_regular']) ? $raw['price_suffix_regular'] : '',
+            'variation_filter_enabled' => isset($raw['variation_filter_enabled']),
+            'b2b_stock_message'        => isset($raw['b2b_stock_message']) ? $raw['b2b_stock_message'] : '',
         ]);
 
         // wp_send_json_success() encodes this as JSON and ends the request —

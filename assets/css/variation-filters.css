@@ -1,0 +1,49 @@
+/* "Filter variations by:" toolbar, printed above the Variations panel
+   on the WooCommerce product edit screen. Deliberately amber-colored —
+   different from WordPress's blue admin chrome and WooCommerce's own
+   purple — so it's obviously "our" toolbar among the native panel UI. */
+
+.hexwp-variation-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff8ec;
+    border: 1px solid #f2cb8f;
+    border-left: 4px solid #b45309;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.hexwp-variation-filters-label {
+    margin-right: 8px;
+    color: #92400e;
+}
+
+.hexwp-variation-filter {
+    margin-right: 8px;
+    margin-bottom: 4px;
+    border-color: #e3ab5c;
+    background-color: #fff;
+}
+
+.hexwp-variation-filter:focus {
+    border-color: #b45309;
+    box-shadow: 0 0 0 1px #b45309;
+}
+
+.hexwp-variation-filter-reset {
+    border-color: #e3ab5c !important;
+    color: #92400e !important;
+}
+
+.hexwp-variation-filter-reset:hover {
+    border-color: #b45309 !important;
+    color: #7c3609 !important;
+}
+
+.hexwp-variation-filter-count {
+    margin-left: 10px;
+    color: #92400e;
+    font-weight: 600;
+}

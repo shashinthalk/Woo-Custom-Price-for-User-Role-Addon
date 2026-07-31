@@ -17,8 +17,22 @@ class Settings {
     // Shared post/variation meta key that stores the B2B price.
     const PRICE_META_KEY = '_b2b_price';
 
+    // Per-product meta keys set in the Inventory tab (see Stock_Field).
+    // These are independent of WooCommerce's own stock management —
+    // just a B2B order-quantity threshold and an on/off switch for it.
+    const STOCK_META_KEY = '_hexwp_b2b_manage_stock'; // 'yes'/'no'
+    const STOCK_QTY_META_KEY = '_hexwp_b2b_stock_qty'; // number
+
     // Fallback values used until an admin saves the settings page,
     // and to fill in any field a saved option might be missing.
+    //
+    // Deliberately no __()/translation calls in here: defaults() is called
+    // from Settings::get(), which can run very early (e.g. during
+    // 'plugins_loaded', before WordPress's 'init' hook). Calling a
+    // translation function that early triggers a WordPress "translation
+    // loaded too early" notice. These suffix values are just an editable
+    // starting point for the admin anyway, not fixed UI text, so plain
+    // strings are the right call here regardless.
     public static function defaults() {
         return [
             'enabled'              => false, // feature is off until an admin turns it on
@@ -26,8 +40,14 @@ class Settings {
             'meta_key'             => 'is_b2b',
             'tax_exempt_enabled'   => true,
             'price_suffix_enabled' => false,
-            'price_suffix_b2b'     => \__('zzgl. MwSt.', HEX_WP_TEXT_DOMAIN),
-            'price_suffix_regular' => \__('inkl. MwSt.', HEX_WP_TEXT_DOMAIN),
+            'price_suffix_b2b'     => 'zzgl. MwSt.',
+            'price_suffix_regular' => 'inkl. MwSt.',
+            // Just an editing convenience on the product screen, doesn't affect
+            // pricing/tax, so it's safe to default this one to on.
+            'variation_filter_enabled' => true,
+            // Shown below the price when a B2B customer requests more than
+            // a product's B2B quantity limit (Inventory tab).
+            'b2b_stock_message' => 'This quantity exceeds our standard limit.',
         ];
     }
 
@@ -73,6 +93,8 @@ class Settings {
             'price_suffix_enabled' => !empty($raw['price_suffix_enabled']),
             'price_suffix_b2b'     => isset($raw['price_suffix_b2b']) ? \sanitize_text_field($raw['price_suffix_b2b']) : $defaults['price_suffix_b2b'],
             'price_suffix_regular' => isset($raw['price_suffix_regular']) ? \sanitize_text_field($raw['price_suffix_regular']) : $defaults['price_suffix_regular'],
+            'variation_filter_enabled' => !empty($raw['variation_filter_enabled']),
+            'b2b_stock_message'        => isset($raw['b2b_stock_message']) ? \sanitize_text_field($raw['b2b_stock_message']) : $defaults['b2b_stock_message'],
         ];
 
         return \update_option(self::OPTION_NAME, $sanitized);

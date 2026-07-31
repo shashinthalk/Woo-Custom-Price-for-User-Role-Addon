@@ -4,7 +4,6 @@
 
 .hexwp-b2b-page {
     max-width: none;
-    width: 100%;
     box-sizing: border-box;
     margin-top: 20px;
 }
@@ -72,7 +71,7 @@
    admin views (WordPress collapses its own admin sidebar around 960px). */
 .hexwp-b2b-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
     align-items: start;
 }

@@ -6,6 +6,9 @@ use HexWp\Admin\B2B_Settings_Page;
 use HexWp\WooCommerce\Product_Price_Field;
 use HexWp\WooCommerce\Variation_Price_Field;
 use HexWp\WooCommerce\Price_Engine;
+use HexWp\WooCommerce\Variation_Filter_Toolbar;
+use HexWp\WooCommerce\Stock_Field;
+use HexWp\WooCommerce\Stock_Engine;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -28,10 +31,12 @@ class Plugin {
         $this->b2b_settings_page->register_hooks();
 
         // Deferred so WooCommerce (if present) has finished loading before we check for it.
-        \add_action('plugins_loaded', [$this, 'maybe_register_b2b_pricing']);
+        \add_action('plugins_loaded', [$this, 'maybe_register_woocommerce_features']);
     }
 
-    public function maybe_register_b2b_pricing() {
+    // Everything here depends on WooCommerce classes/functions, so it's only
+    // registered when WooCommerce is actually active.
+    public function maybe_register_woocommerce_features() {
         if (!class_exists('WooCommerce')) {
             return;
         }
@@ -39,6 +44,9 @@ class Plugin {
         (new Variation_Price_Field())->register_hooks();
         (new Product_Price_Field())->register_hooks();
         (new Price_Engine())->register_hooks();
+        (new Variation_Filter_Toolbar())->register_hooks();
+        (new Stock_Field())->register_hooks();
+        (new Stock_Engine())->register_hooks();
     }
 
     public function load_text_domain() {
