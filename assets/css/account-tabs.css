@@ -1,0 +1,260 @@
+/* Login/Register tabbed layout for the My Account page. Loaded only when
+   both "Login/Register tabs" and this CSS switch are enabled on the
+   Registration & Account settings page.
+
+   Column visibility defaults to "login form shown, register form hidden"
+   with plain CSS (no :not() dependency on JS), so the page still degrades
+   sensibly if the JS switch is turned off — see account-tabs.js. */
+
+.woocommerce-notices-wrapper {
+    max-width: 720px;
+    margin: 0 auto 20px;
+}
+
+.woocommerce-error {
+    text-align: center;
+    border-radius: 10px;
+    list-style: none;
+    padding: 16px 20px !important;
+    margin: 0 !important;
+}
+
+.woocommerce-error li {
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .woocommerce-notices-wrapper {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+}
+
+#customer_login .woocommerce-form-login__rememberme {
+    display: block;
+    margin-bottom: 16px;
+}
+
+#customer_login .woocommerce-form-login__submit {
+    display: block;
+}
+
+#customer_login p.form-row:has(.woocommerce-form-login__submit) {
+    display: flex;
+    flex-direction: column;
+}
+
+#customer_login {
+    display: block;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px;
+}
+
+.hexwp-account-tabs {
+    display: flex;
+    gap: 4px;
+    max-width: 720px;
+    margin: 0 auto 0;
+    background: #f0f0f0;
+    border-radius: 12px;
+    padding: 6px;
+}
+
+.hexwp-account-tab-btn {
+    flex: 1;
+    padding: 14px 0;
+    font-size: 16px;
+    font-weight: 700;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.hexwp-account-tab-btn.active {
+    color: #fff;
+    background: #000;
+}
+
+.hexwp-account-tab-btn:not(.active):hover {
+    color: #000;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+#customer_login .u-column1,
+#customer_login .u-column2 {
+    width: 100% !important;
+    float: none !important;
+}
+
+/* Base/fallback state: login shown, register hidden — holds even if the
+   attribute selector below never matches for some reason (e.g. markup
+   between our tabs and #customer_login from another plugin/theme), so the
+   page can never end up with BOTH columns hidden.
+
+   Which column actually shows is driven by data-active-tab on
+   .hexwp-account-tabs (our own element, output right before #customer_login
+   by Login_Register_Tabs::render_tab_buttons() — see that class for why a
+   preceding-sibling attribute is used instead of a class on #customer_login
+   itself). PHP sets the initial value (defaults to "login", but becomes
+   "register" when redisplaying the page after a failed Register submission)
+   and account-tabs.js updates the same attribute on click — one single
+   source of truth for both the JS-driven and the no-JS-yet state. */
+#customer_login .u-column1 {
+    display: block;
+}
+
+#customer_login .u-column2 {
+    display: none;
+}
+
+.hexwp-account-tabs[data-active-tab="register"] + #customer_login .u-column1 {
+    display: none;
+}
+
+.hexwp-account-tabs[data-active-tab="register"] + #customer_login .u-column2 {
+    display: block;
+    animation: hexwpAccountTabFadeIn 0.3s ease;
+}
+
+@keyframes hexwpAccountTabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#customer_login h2 {
+    display: none;
+}
+
+#customer_login .form-row label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #222;
+}
+
+#customer_login .input-text,
+#customer_login input[type="text"],
+#customer_login input[type="email"],
+#customer_login input[type="password"],
+#customer_login input[type="tel"] {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 15px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+#customer_login .input-text:focus,
+#customer_login input:focus {
+    outline: none;
+    border-color: #000;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+/* select.input-text (the Customer Type dropdown) already gets width/padding/
+   border from the .input-text rule above, but a native <select> keeps its
+   browser-default appearance (arrow + internal chrome) unless explicitly
+   reset — combined with our custom padding this is what made it render
+   looking "half cut" instead of matching the text inputs. Resetting
+   appearance and drawing our own arrow fixes that consistently across
+   browsers instead of fighting the native chrome. */
+#customer_login select.input-text {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    line-height: 0
+    ;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+}
+
+#customer_login textarea.input-text {
+    min-height: 110px;
+    resize: vertical;
+}
+
+#customer_login .form-row {
+    margin-bottom: 22px;
+}
+
+#customer_login .woocommerce-form-row--wide {
+    margin-bottom: 22px;
+}
+
+#customer_login button[type="submit"] {
+    width: 100%;
+    padding: 16px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+#customer_login button[type="submit"]:hover {
+    opacity: 0.85;
+}
+
+#customer_login .woocommerce-LostPassword {
+    display: block;
+    text-align: center;
+    margin-top: 18px;
+    font-size: 14px;
+}
+
+#customer_login .woocommerce-LostPassword a {
+    color: #666;
+    text-decoration: underline;
+}
+
+#customer_login p:has(input#rememberme) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#customer_login p:has(input#rememberme) label {
+    margin: 0;
+    font-weight: 400;
+}
+
+#customer_login .form-row.form-row-first,
+#customer_login .form-row.form-row-last {
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    #customer_login {
+        padding: 28px 20px;
+        border-radius: 12px;
+    }
+
+    .hexwp-account-tab-btn {
+        font-size: 14px;
+        padding: 12px 0;
+    }
+}
+
+.u-columns>*, .woocommerce-columns>* {
+    padding-top: 0px !important;
+    padding-left: 0px !important;
+}

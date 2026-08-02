@@ -4,18 +4,17 @@
     "scope_boundary_folders": [
       "wp-content/plugins/wp-b2b-cutomer-products-addon"
     ],
-    "description": "Started as an unmodified copy of the 'Hexnity WP Plugin Template' boilerplate (MIT, Hexnity 2026) — an admin page that saves a single text entry to a custom DB table (wp_sap_entries) plus a [sap_messages] shortcode. That demo code is still present but unrelated to the plugin's real purpose. The real feature, added 2026-07-30, is WooCommerce B2B pricing: a per-product/variation '_b2b_price' meta field, a HexWp\\WooCommerce\\Customer role/meta check, price + price-html + tax-display/exemption + price-suffix filters, and an admin 'B2B Pricing' settings page to configure roles/meta key/tax/suffix behavior. All B2B pricing hooks only register when WooCommerce is active.",
+    "description": "Started as a copy of the 'Hexnity WP Plugin Template' boilerplate (MIT, Hexnity 2026), which included a demo admin page + [sap_messages] shortcode backed by a custom DB table (wp_sap_entries). As of 2026-07-31 that demo UI (Admin_Page, Shortcode, templates/admin-page.php, docs/) no longer exists in the codebase — confirmed via repo-wide grep — though includes/class-data-repository.php and the wp_sap_entries table/activation/uninstall plumbing are still present and unused by anything else. The real features: (1) WooCommerce B2B pricing, added 2026-07-30 — a per-product/variation '_b2b_price' meta field, a HexWp\\WooCommerce\\Customer role/meta check, price + price-html + tax-display/exemption + price-suffix filters, and an admin 'B2B Pricing' settings page. Also includes a Variation_Filter_Toolbar, Stock_Field, and Stock_Engine under includes/WooCommerce/ that are wired into class-plugin.php but not yet independently documented here — see needs_resync in claude.json. (2) WooCommerce registration/account extras, added 2026-07-31 and expanded the same day — optional First/Last name/Phone fields on the registration form plus admin-defined custom fields (a repeater — add any number of extra text/email/tel/number/textarea fields, each saved to its own user meta), full show/hide control over every My Account > Account details field (first name, last name, display name, email, phone, password — WooCommerce's own fields are hidden via CSS since core exposes no per-field filter for that template; phone is entirely ours so hiding it is a true non-render), and an optional tabbed Login/Register layout on the My Account page, each independently admin-toggleable (including separate CSS/JS switches for the tabs) via the 'Registration & Account' settings page (HexWp\\Account namespace). All WooCommerce-dependent hooks in both features only register when WooCommerce is active. All admin pages (B2B Pricing, Registration & Account) live under one common top-level wp-admin menu, 'B2B Customer Addon' (see includes/Admin/class-b2b-settings-page.php's MENU_SLUG constant) — B2B Pricing owns the actual add_menu_page() call and relabels its own auto-generated first submenu item; every other admin page attaches via add_submenu_page() against that same slug.",
     "entry_point": "index.php",
     "tech_stack": ["PHP 7.4+/8.x", "WordPress 6.x plugin API", "WooCommerce (optional dependency, feature-detected via class_exists('WooCommerce'))", "$wpdb (MySQL/MariaDB)"]
   },
 
   "directory_structure": {
     "includes/": "PSR-4-ish autoloaded classes under namespace HexWp (see class-autoloader.php for the mapping rule).",
-    "includes/Admin/": "Admin-facing UI controllers: the demo 'Text Storage' page and the real 'B2B Pricing' settings page.",
-    "includes/Frontend/": "Public-facing shortcode renderer (demo feature).",
-    "includes/WooCommerce/": "B2B pricing feature: Settings (option storage), Customer (B2B detection), Variation_Price_Field / Product_Price_Field (admin price input), Price_Engine (price/tax/suffix filters).",
-    "templates/": "Plain PHP view partials, `require`d by controllers (admin-page.php and b2b-settings-page.php).",
-    "docs/": "Static HTML documentation shown via an admin submenu iframe."
+    "includes/Admin/": "Admin-facing UI controllers: the 'B2B Pricing' settings page (owns the plugin's common top-level menu) and the 'Registration & Account' settings page (a submenu of it).",
+    "includes/WooCommerce/": "B2B pricing feature: Settings (option storage), Customer (B2B detection), Variation_Price_Field / Product_Price_Field (admin price input), Price_Engine (price/tax/suffix filters), plus Variation_Filter_Toolbar / Stock_Field / Stock_Engine (see needs_resync in claude.json — not yet documented in detail here).",
+    "includes/Account/": "Registration/account feature: Settings (option storage — core fields, custom-fields repeater, account-page field visibility, tabs), Registration_Fields (core + custom registration form fields), Account_Phone_Field (My Account phone field), Account_Field_Visibility (CSS-hides whichever core My Account fields are toggled off), Login_Register_Tabs (tabbed My Account login/register layout).",
+    "templates/": "Plain PHP view partials, `require`d by controllers (b2b-settings-page.php, account-settings-page.php)."
   },
 
   "files": [
@@ -55,20 +54,20 @@
     },
     {
       "path": "includes/class-plugin.php",
-      "purpose": "Runtime orchestrator. Wires one Data_Repository instance into Admin_Page and Shortcode, registers the B2B settings page, and (if WooCommerce is active) registers the B2B pricing hooks.",
+      "purpose": "Runtime orchestrator. Constructs B2B_Settings_Page and Account_Settings_Page (both always register — B2B_Settings_Page owns the plugin's one common top-level wp-admin menu, Account_Settings_Page attaches to it as a submenu), and, if WooCommerce is active, registers the B2B pricing hooks and the registration/account hooks. No longer holds a Data_Repository instance or an Admin_Page reference — both were dead properties left over from the now-deleted 'Text Storage' demo feature (Admin_Page/Shortcode don't exist on disk; see project_overview and needs_resync in claude.json), removed 2026-07-31 while this file was already being edited for the menu restructure.",
       "exports": ["HexWp\\Plugin"],
-      "depends_on": ["includes/class-data-repository.php", "includes/Admin/class-admin-page.php", "includes/Admin/class-b2b-settings-page.php", "includes/Frontend/class-shortcode.php", "includes/WooCommerce/class-variation-price-field.php", "includes/WooCommerce/class-product-price-field.php", "includes/WooCommerce/class-price-engine.php"],
+      "depends_on": ["includes/Admin/class-b2b-settings-page.php", "includes/Admin/class-account-settings-page.php", "includes/WooCommerce/class-variation-price-field.php", "includes/WooCommerce/class-product-price-field.php", "includes/WooCommerce/class-price-engine.php", "includes/WooCommerce/class-variation-filter-toolbar.php", "includes/WooCommerce/class-stock-field.php", "includes/WooCommerce/class-stock-engine.php", "includes/Account/class-registration-fields.php", "includes/Account/class-account-phone-field.php", "includes/Account/class-account-field-visibility.php", "includes/Account/class-login-register-tabs.php"],
       "functions": [
         {
           "name": "Plugin::run",
           "signature": "run(): void",
-          "description": "Hooks load_text_domain to init, calls register_hooks() on admin_page/shortcode/b2b_settings_page, and hooks maybe_register_b2b_pricing to plugins_loaded.",
+          "description": "Hooks load_text_domain to init, calls register_hooks() on b2b_settings_page/account_settings_page, and hooks maybe_register_woocommerce_features to plugins_loaded.",
           "called_by": ["index.php:hex_wp_run_plugin"]
         },
         {
-          "name": "Plugin::maybe_register_b2b_pricing",
-          "signature": "maybe_register_b2b_pricing(): void",
-          "description": "Checks class_exists('WooCommerce'); if true, constructs and registers Variation_Price_Field, Product_Price_Field, and Price_Engine. Run on plugins_loaded so WooCommerce (if present) has already loaded.",
+          "name": "Plugin::maybe_register_woocommerce_features",
+          "signature": "maybe_register_woocommerce_features(): void",
+          "description": "Checks class_exists('WooCommerce'); if true, constructs and registers Variation_Price_Field, Product_Price_Field, Price_Engine, Variation_Filter_Toolbar, Stock_Field, Stock_Engine, Registration_Fields, Account_Phone_Field, Account_Field_Visibility, and Login_Register_Tabs. Run on plugins_loaded so WooCommerce (if present) has already loaded.",
           "called_by": ["plugins_loaded action"]
         }
       ]
@@ -136,78 +135,20 @@
         {
           "name": "Data_Repository::get_recent_entries",
           "signature": "get_recent_entries(int $limit = 10): array",
-          "description": "Returns the most recent entries via a $wpdb->prepare()'d SELECT ... LIMIT %d. $limit is absint()'d and defaults to 10 if < 1.",
-          "called_by": ["Admin/class-admin-page.php:render_page", "Frontend/class-shortcode.php:render_messages"]
+          "description": "Returns the most recent entries via a $wpdb->prepare()'d SELECT ... LIMIT %d. $limit is absint()'d and defaults to 10 if < 1. STALE called_by — Admin_Page and Shortcode (its only callers) don't exist on disk (confirmed 2026-07-31); nothing currently calls this method. Left in place (not deleted) since it's outside this session's requested scope.",
+          "called_by": []
         },
         {
           "name": "Data_Repository::insert_message",
           "signature": "insert_message(string $message): bool",
-          "description": "Inserts a row via $wpdb->insert() with an explicit %s/%s format array (parameterized, not raw SQL).",
-          "called_by": ["Admin/class-admin-page.php:maybe_handle_form_submission"]
+          "description": "Inserts a row via $wpdb->insert() with an explicit %s/%s format array (parameterized, not raw SQL). STALE called_by — Admin_Page (its only caller) doesn't exist on disk (confirmed 2026-07-31); nothing currently calls this method.",
+          "called_by": []
         },
         {
           "name": "Data_Repository::drop_table",
           "signature": "drop_table(): void",
           "description": "DROP TABLE IF EXISTS on the plugin's table. Table name is not user input (built from $wpdb->prefix), so no injection risk despite string interpolation.",
           "called_by": ["class-uninstaller.php"]
-        }
-      ]
-    },
-    {
-      "path": "includes/Admin/class-admin-page.php",
-      "purpose": "Registers the wp-admin menu + submenu, renders the admin form/list page and the embedded documentation page, and handles the admin form POST.",
-      "exports": ["HexWp\\Admin\\Admin_Page"],
-      "depends_on": ["includes/class-data-repository.php", "templates/admin-page.php"],
-      "functions": [
-        {
-          "name": "Admin_Page::register_hooks",
-          "signature": "register_hooks(): void",
-          "description": "Hooks register_menu to admin_menu.",
-          "called_by": ["class-plugin.php:run"]
-        },
-        {
-          "name": "Admin_Page::register_menu",
-          "signature": "register_menu(): void",
-          "description": "Adds the top-level 'Text Storage' menu page and a 'Documentation' submenu page, both gated on manage_options.",
-          "called_by": ["admin_menu action"]
-        },
-        {
-          "name": "Admin_Page::render_page",
-          "signature": "render_page(): void",
-          "description": "Capability check, processes any form submission, loads recent entries, and requires templates/admin-page.php.",
-          "called_by": ["add_menu_page callback"]
-        },
-        {
-          "name": "Admin_Page::render_documentation_page",
-          "signature": "render_documentation_page(): void",
-          "description": "Capability check, then echoes an iframe pointing at docs/documentation.html (URL built with plugins_url(), escaped with esc_url()).",
-          "called_by": ["add_submenu_page callback"]
-        },
-        {
-          "name": "Admin_Page::maybe_handle_form_submission",
-          "signature": "maybe_handle_form_submission(): array|null",
-          "description": "Verifies nonce 'sap_admin_save_text', sanitizes $_POST['sap_message'] with wp_unslash()+sanitize_text_field()+trim(), rejects empty text, inserts via repository, returns a notice array for the template.",
-          "called_by": ["Admin_Page::render_page"]
-        }
-      ]
-    },
-    {
-      "path": "includes/Frontend/class-shortcode.php",
-      "purpose": "Public shortcode renderer for [sap_messages] (alias [sap_form]).",
-      "exports": ["HexWp\\Frontend\\Shortcode"],
-      "depends_on": ["includes/class-data-repository.php"],
-      "functions": [
-        {
-          "name": "Shortcode::register_hooks",
-          "signature": "register_hooks(): void",
-          "description": "Registers both shortcode tags to render_messages.",
-          "called_by": ["class-plugin.php:run"]
-        },
-        {
-          "name": "Shortcode::render_messages",
-          "signature": "render_messages(array $atts): string",
-          "description": "Reads/clamps the 'limit' attribute (1-50, default 10), fetches entries, and outputs escaped HTML (esc_html throughout) via output buffering.",
-          "called_by": ["WordPress shortcode engine"]
         }
       ]
     },
@@ -362,7 +303,7 @@
         {
           "name": "B2B_Settings_Page::register_menu",
           "signature": "register_menu(): void",
-          "description": "add_menu_page('hex-wp-b2b-pricing', ...), capability manage_options.",
+          "description": "Creates the plugin's ONE common top-level wp-admin menu via add_menu_page(self::MENU_SLUG='hex-wp-b2b-pricing', ...), then immediately calls add_submenu_page(self::MENU_SLUG, ..., self::MENU_SLUG, ...) to relabel the auto-generated first submenu item from the generic top-level title ('B2B Customer Addon') to 'B2B Pricing' — standard WP 'landing page IS a real submenu item' pattern, slug/callback unchanged. Every other HexWp admin page (e.g. Account_Settings_Page) attaches to self::MENU_SLUG via its own add_submenu_page() call rather than getting a top-level entry. As of the 2026-07-31 M8 bugfix: the relabeling add_submenu_page() call's return value is stored in $this->screen_hook (used by enqueue_assets()) instead of a hardcoded SCREEN_HOOK constant — the constant guessed the wrong hook suffix (see M8 in claude.json), since WordPress derives a page's admin_enqueue_scripts hook from the sanitized *title* text of its top-level ancestor, which isn't safely predictable ahead of time (and changes per locale).",
           "called_by": ["admin_menu action"]
         },
         {
@@ -374,23 +315,245 @@
         {
           "name": "B2B_Settings_Page::maybe_handle_form_submission",
           "signature": "maybe_handle_form_submission(): array|null",
-          "description": "Verifies nonce 'hex_wp_b2b_settings_save', then passes wp_unslash()'d raw POST values to Settings::update() (which does the actual sanitization) and returns a notice array for the template.",
+          "description": "STALE — this method was not found when the file was actually read on 2026-07-31. The live code instead saves via admin-ajax.php (handle_ajax_save(), AJAX_ACTION='hex_wp_save_b2b_settings', NONCE_ACTION='hex_wp_b2b_settings_ajax'), enqueued assets/js/b2b-settings.js. Flagged under needs_resync rather than silently rewritten, since this session's task didn't touch this file.",
           "called_by": ["B2B_Settings_Page::render_page"]
         }
       ]
     },
     {
-      "path": "templates/admin-page.php",
-      "purpose": "View for the admin 'Text Storage' page: notice banner, single-field form with nonce, and a read-only table of recent entries. All dynamic output passes through esc_html/esc_attr/esc_url.",
-      "exports": [],
+      "path": "includes/Admin/class-account-settings-page.php",
+      "purpose": "Admin menu page ('Registration & Account') for configuring HexWp\\Account\\Settings, registered as a submenu of B2B_Settings_Page::MENU_SLUG (the plugin's one common top-level menu). Uses manage_options so it stays reachable even if WooCommerce is deactivated. Saves via admin-ajax.php, same AJAX pattern as class-b2b-settings-page.php.",
+      "exports": ["HexWp\\Admin\\Account_Settings_Page"],
+      "depends_on": ["includes/Account/class-settings.php", "includes/Admin/class-b2b-settings-page.php (for its MENU_SLUG constant)", "templates/account-settings-page.php", "assets/css/b2b-admin.css", "assets/css/account-admin.css", "assets/js/account-settings.js"],
+      "functions": [
+        {
+          "name": "Account_Settings_Page::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks register_menu to admin_menu, enqueue_assets to admin_enqueue_scripts, handle_ajax_save to wp_ajax_hex_wp_save_account_settings.",
+          "called_by": ["class-plugin.php:run"]
+        },
+        {
+          "name": "Account_Settings_Page::register_menu",
+          "signature": "register_menu(): void",
+          "description": "add_submenu_page(B2B_Settings_Page::MENU_SLUG, ..., self::MENU_SLUG='hex-wp-account-settings', ...), capability manage_options. No longer its own top-level menu. Its return value is stored in $this->screen_hook and read by enqueue_assets() — as of the 2026-07-31 M8 bugfix, replacing an earlier hardcoded SCREEN_HOOK constant ('hex-wp-b2b-pricing_page_hex-wp-account-settings') that assumed the submenu hook suffix is built from the PARENT'S SLUG. It's actually built from sanitize_title() of the parent's top-level menu TITLE ('B2B Customer Addon' -> 'b2b-customer-addon'), so the real hook is 'b2b-customer-addon_page_hex-wp-account-settings' — the hardcoded guess never matched, so enqueue_assets() silently never ran on this page (no CSS, no account-settings.js, so 'Add Field' did nothing). See M8 in claude.json.",
+          "called_by": ["admin_menu action"]
+        },
+        {
+          "name": "Account_Settings_Page::enqueue_assets",
+          "signature": "enqueue_assets(string $hook): void",
+          "description": "Only on this page's own screen: enqueues the shared b2b-admin.css (card/switch/notice/save-bar styles), the page-specific account-admin.css, and account-settings.js; localizes hexWpAccountSettings (ajaxUrl/action/nonce/messages) for the JS.",
+          "called_by": ["admin_enqueue_scripts action"]
+        },
+        {
+          "name": "Account_Settings_Page::render_page",
+          "signature": "render_page(): void",
+          "description": "Capability check, loads current settings + WooCommerce-active flag, requires templates/account-settings-page.php.",
+          "called_by": ["add_menu_page callback"]
+        },
+        {
+          "name": "Account_Settings_Page::handle_ajax_save",
+          "signature": "handle_ajax_save(): void",
+          "description": "check_ajax_referer('hex_wp_account_settings_ajax'), current_user_can('manage_options') check, then passes wp_unslash()'d raw POST values to Settings::update() (which does the actual sanitization) and wp_send_json_success()/wp_send_json_error()s the result. Passes through 'custom_fields' (repeater rows, nested array from custom_fields[N][...] names), 'account_field_visibility' (nested array from account_field_visibility[key] checkbox names), 'customer_type_field_label'/'customer_type_placeholder'/'customer_type_required_error' (plain text fields), 'customer_type_include_roles'/'customer_type_exclude_roles' (arrays — as of 2026-07-31 M12 these come from checkbox lists rather than M11's <select multiple>, but the field names and array-of-strings shape are unchanged, so this method needed no edit for that UI change at all; note a browser sends NO field for a checkbox group with nothing checked, so isset() correctly yields an empty array in that case, not an error), and, as of 2026-07-31 (M12), 'first_name_label'/'last_name_label'/'phone_label' (plain text fields, same pattern as the customer-type text fields) — all arrive already-unslashed via wp_unslash($_POST) since it recurses into nested arrays. This method never itself validates the submitted role slugs against the real role list; that whitelist check happens once, in Settings::sanitize_role_list() (used for both lists), so there's a single place that decides what's valid.",
+          "called_by": ["wp_ajax_hex_wp_save_account_settings action (admin-ajax.php)"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Account/class-settings.php",
+      "purpose": "Single source of truth for the registration-fields / custom-fields / customer-type-roles / account-field-visibility / login-register-tabs configuration. Stored as one option (hex_wp_account_settings), same pattern as HexWp\\WooCommerce\\Settings.",
+      "exports": ["HexWp\\Account\\Settings"],
       "depends_on": [],
-      "functions": []
+      "functions": [
+        {
+          "name": "Settings::available_roles",
+          "signature": "available_roles(): array",
+          "description": "Added 2026-07-31 (M11), replacing the M9/M10 fixed customer_type_catalog()/customer_type_labels() entirely. Returns [role slug => translated display name] for every REAL role currently registered on the site (from wp_roles()->get_names(), each name run through translate_user_role() — the same WP core helper used for e.g. the Users list table), with 'administrator' unconditionally removed regardless of any admin configuration. This is now the SINGLE, authoritative source every other customer-type-role method reads from (the admin template's two <select multiple>s, both list sanitizers, and — as one further explicit check inside Registration_Fields::apply_customer_type_role() — the role-application step itself), specifically so the 'administrator can never be offered or applied' guarantee only has to hold in one place rather than being separately re-implemented (and potentially missed) at each call site. Safe to call from every actual call site in this codebase (post-'init' registration hooks and the admin settings page) even though it depends on wp_roles(), which isn't safe to call as early as 'plugins_loaded'.",
+          "called_by": ["Registration_Fields::get_offered_roles", "Registration_Fields::apply_customer_type_role (defense-in-depth check)", "Settings::sanitize_role_list", "Settings::get", "templates/account-settings-page.php"]
+        },
+        {
+          "name": "Settings::defaults",
+          "signature": "defaults(): array",
+          "description": "registration_fields_enabled, customer_type_enabled, customer_type_required, and login_register_tabs_enabled all default false; the three core per-field enabled/required pairs (first_name, last_name, phone) default true/true. As of 2026-07-31 (M12): first_name_label/last_name_label/phone_label default to plain English ('First name'/'Last name'/'Phone') — same free-text-not-__()  pattern as the customer_type text fields, added because the project owner asked to make these titles admin-editable too. 'custom_fields' defaults to an empty array. As of 2026-07-31 (M11): 'customer_type_include_roles'/'customer_type_exclude_roles' both default to an empty array (field renders nothing, and is therefore inert, until an admin picks at least one include role) — replacing M9's 'customer_type_visible'. 'customer_type_field_label'/'customer_type_placeholder'/'customer_type_required_error' (M10, kept in M11) default to plain English text an admin can freely overwrite (e.g. with German) since there's no translation file shipped; 'customer_type_invalid_error'/'customer_type_labels' (M10) were removed in M11 — the new role-based model has no 'invalid selection' rejection state to have an error message for, and per-type label customization no longer applies now that labels come from real role names via translate_user_role(). 'account_field_visibility' is a 6-key array all defaulting true; the tabs UI's own css/js sub-switches default true.",
+          "called_by": ["Settings::get", "Settings::update"]
+        },
+        {
+          "name": "Settings::get",
+          "signature": "get(): array",
+          "description": "get_option() merged over defaults() via wp_parse_args(), plus an explicit second wp_parse_args() pass just for the 'account_field_visibility' sub-array (wp_parse_args() only merges top-level keys) and an is_array() guard on 'custom_fields'. As of 2026-07-31 (M11): re-filters BOTH 'customer_type_include_roles' and 'customer_type_exclude_roles' against array_keys(available_roles()) via array_intersect() on every read, not just on save — if a role is ever removed (by this site or another plugin) after being saved here, a now-invalid slug left over in a saved option is dropped here; since available_roles() already excludes 'administrator' unconditionally, this same re-filter also re-enforces that exclusion on every read, not just at sanitize time.",
+          "called_by": ["Registration_Fields (all methods)", "Account_Phone_Field (all methods)", "Account_Field_Visibility::render_visibility_css", "Login_Register_Tabs (all methods)", "Admin\\class-account-settings-page.php"]
+        },
+        {
+          "name": "Settings::update",
+          "signature": "update(array $raw): bool",
+          "description": "Starts with $defaults = self::defaults() (needed for text-field fallbacks). Flat boolean keys are !empty() cast to bool. 'custom_fields' and 'account_field_visibility' delegate to their own private sanitizers. As of 2026-07-31 (M11): 'customer_type_include_roles' and 'customer_type_exclude_roles' both delegate to the single shared sanitize_role_list() below (replacing M9's sanitize_customer_type_visible() and removing M10's sanitize_customer_type_labels() entirely, since there's no more per-type label concept). The customer-type text fields (field_label/placeholder/required_error) are sanitize_text_field()'d if present in $raw, else fall back to $defaults — same established pattern as HexWp\\WooCommerce\\Settings::update()'s price_suffix_b2b/price_suffix_regular. As of 2026-07-31 (M12): first_name_label/last_name_label/phone_label follow the exact same isset()-then-sanitize_text_field()-else-$defaults pattern.",
+          "called_by": ["Admin\\class-account-settings-page.php:handle_ajax_save"]
+        },
+        {
+          "name": "Settings::sanitize_role_list",
+          "signature": "sanitize_role_list(array $raw): array (private)",
+          "description": "Added 2026-07-31 (M11), replacing sanitize_customer_type_visible() and used for BOTH customer_type_include_roles and customer_type_exclude_roles (one shared sanitizer, not two separately-written ones, so both lists get identically strict treatment). Whitelist filter: sanitize_key()s every submitted value, then keeps only the ones that exactly match a role slug already present in available_roles() — which itself never contains 'administrator' — de-dupes, drops everything else silently. Verified with a standalone smoke test (stubbed WP functions, a fake wp_roles() that DOES include 'administrator' in its raw role list) that submitting 'administrator' and a nonexistent role slug into either list both fail to survive Settings::update()/get(), even though the underlying fake role source technically offered 'administrator' as a real role — confirming the exclusion happens at the available_roles() layer, not by coincidence of the test's role list.",
+          "called_by": ["Settings::update"]
+        },
+        {
+          "name": "Settings::sanitize_account_field_visibility",
+          "signature": "sanitize_account_field_visibility(array $raw): array (private)",
+          "description": "Only keeps the 6 keys in self::ACCOUNT_VISIBILITY_FIELDS, each cast to bool — anything else in the submitted array is dropped.",
+          "called_by": ["Settings::update"]
+        },
+        {
+          "name": "Settings::sanitize_custom_fields",
+          "signature": "sanitize_custom_fields(array $raw_rows): array (private)",
+          "description": "Sanitizes the admin-submitted repeater rows. A row with a blank label (after sanitize_text_field()) is dropped — treated as an empty leftover row from the UI, not a real field. 'type' is checked against self::CUSTOM_FIELD_TYPES, defaulting to 'text' if invalid/missing. 'id': reused via sanitize_key() if the row already had one (editing an existing field), otherwise derived from the label via sanitize_title(); a 'field' fallback covers labels that sanitize_title() strips to nothing; a numeric -2/-3/... suffix is appended if two rows in the same save would otherwise collide on the same id. Verified with a standalone smoke test (stubbed WP functions) covering blank-row dropping, id collision, invalid type fallback, and existing-id preservation.",
+          "called_by": ["Settings::update"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Account/class-registration-fields.php",
+      "purpose": "Adds First name / Last name / Phone / Customer type fields to the WooCommerce registration form, plus any admin-defined custom fields (Settings::get()['custom_fields']). Each of the 3 core text fields has its own 'shown'/'required' switch; custom fields carry the same two settings per row. Customer type is a dropdown of real WordPress roles (Settings::available_roles(), always excludes 'administrator') — as of 2026-07-31 (M11) the selected role is ACTUALLY APPLIED to the new account (a reversal from M9/M10's 'never touches roles, plain meta only' design) — see apply_customer_type_role() below for the exact rule and security reasoning.",
+      "exports": ["HexWp\\Account\\Registration_Fields"],
+      "depends_on": ["includes/Account/class-settings.php"],
+      "functions": [
+        {
+          "name": "Registration_Fields::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_fields to woocommerce_register_form, validate_fields to woocommerce_registration_errors, save_fields to woocommerce_created_customer. Unconditional — each callback checks Settings::get() itself (see the note in class-settings.php's file-level docblock about calling settings too early on plugins_loaded), same convention as Price_Engine/Stock_Engine.",
+          "called_by": ["class-plugin.php:maybe_register_woocommerce_features"]
+        },
+        {
+          "name": "Registration_Fields::render_fields",
+          "signature": "render_fields(): void",
+          "description": "Bails if registration_fields_enabled is off. Otherwise renders whichever of first_name/last_name/phone are individually enabled (prefilled from $_POST if redisplaying after a validation error), calls render_customer_type_field() if customer_type_enabled, then loops Settings::get()['custom_fields'] calling render_custom_field() for each. As of 2026-07-31 (M12): the 3 core fields' labels come from $settings['first_name_label']/['last_name_label']/['phone_label'] instead of hardcoded __() calls — render_field() itself needed no change, since it already did esc_html($label) on a plain string rather than esc_html__() on a translation-function string.",
+          "called_by": ["woocommerce_register_form action"]
+        },
+        {
+          "name": "Registration_Fields::get_offered_roles",
+          "signature": "get_offered_roles(array $settings): array (private)",
+          "description": "Added 2026-07-31 (M11), replacing get_visible_customer_types(). Returns [role slug => label] for only the roles in Settings::available_roles() that the admin has put in 'customer_type_include_roles'. This is what the DROPDOWN OFFERS — not the full security check for what gets applied (that's apply_customer_type_role(), which also consults the exclude list) — but since available_roles() itself never contains 'administrator', this can't offer it either way.",
+          "called_by": ["Registration_Fields::render_customer_type_field"]
+        },
+        {
+          "name": "Registration_Fields::render_customer_type_field",
+          "signature": "render_customer_type_field(array $settings): void (private)",
+          "description": "Renders nothing if get_offered_roles() is empty (admin turned the field on but hasn't included any roles yet). Otherwise renders a <select name=\"customer_type\"> with a blank placeholder option plus one <option> per offered role, prefilled from $_POST if redisplaying after a validation error. Label/placeholder text come from $settings['customer_type_field_label']/['customer_type_placeholder'] (esc_html()'d, since they're dynamic admin text, not a static translatable string).",
+          "called_by": ["Registration_Fields::render_fields"]
+        },
+        {
+          "name": "Registration_Fields::render_custom_field",
+          "signature": "render_custom_field(array $field): void (private)",
+          "description": "Renders one admin-defined field. POST name is custom_field[{id}] (self::CUSTOM_FIELD_PREFIX) so it can never collide with the 3 core field names, customer_type, or WooCommerce's own registration fields. Renders a <textarea> for type='textarea', an <input type=\"{type}\"> otherwise.",
+          "called_by": ["Registration_Fields::render_fields"]
+        },
+        {
+          "name": "Registration_Fields::validate_fields",
+          "signature": "validate_fields(WP_Error $errors, string $username, string $email): WP_Error",
+          "description": "Adds an error for any individually-required core field left empty in $_POST, plus one for any required custom field left empty in $_POST['custom_field'][{id}]. As of 2026-07-31 (M11): customer_type validation is now JUST a presence check (empty($_POST['customer_type']) when customer_type_required) — the M9/M10 'invalid selection' rejection was removed entirely, since with the new role-based model there's no state that needs registration blocked; apply_customer_type_role() (called from save_fields()) always resolves any submission to some safe role, so nothing here needs to reject the registration except the registrant leaving it blank. Error text comes from $settings['customer_type_required_error']. No extra nonce check needed anywhere in this method — it runs inside WooCommerce's own already-nonce-verified registration flow.",
+          "called_by": ["woocommerce_registration_errors filter"]
+        },
+        {
+          "name": "Registration_Fields::save_fields",
+          "signature": "save_fields(int $customer_id): void",
+          "description": "sanitize_text_field(wp_unslash())s each enabled core field's $_POST value and update_user_meta()s it (first_name/last_name to the same-named core meta keys, phone to billing_phone). As of 2026-07-31 (M11): calls apply_customer_type_role($customer_id, $settings) when customer_type_enabled — see that method for the actual role-application rule. Then loops custom fields: sanitize_textarea_field() for type='textarea' (preserves line breaks), sanitize_text_field() otherwise, saved to user meta key self::CUSTOM_FIELD_META_PREFIX.'hexwp_regfield_'.{id}.",
+          "called_by": ["woocommerce_created_customer action"]
+        },
+        {
+          "name": "Registration_Fields::apply_customer_type_role",
+          "signature": "apply_customer_type_role(int $customer_id, array $settings): void (private)",
+          "description": "Added 2026-07-31 (M11) — the core of the redesign. A BLANK $_POST['customer_type'] does nothing at all (no role change, no meta write): the account simply keeps whatever role WooCommerce's own wc_create_new_customer() already gave it. For a non-empty submission: (1) if it's in 'customer_type_exclude_roles', the role is forced to self::FALLBACK_ROLE ('subscriber') — checked FIRST, so a role present in both lists is always treated as excluded; (2) else if it's in 'customer_type_include_roles' AND isn't literally the string 'administrator' (redundant defense-in-depth on top of available_roles() already excluding it from both lists), that role is applied via (new WP_User($customer_id))->set_role($role); (3) else (unrecognized, tampered/injected, or simply a role the admin never configured either way) — FALLBACK_ROLE again. The original submitted value is also recorded as user meta (self::CUSTOMER_TYPE_META_KEY = 'hexwp_customer_type') purely for the admin's own record-keeping (e.g. seeing someone tried to register as an excluded role) — never read back for any security decision. Verified with a standalone smoke test covering all 7 branches: included role applied; excluded role forced to subscriber even though it's a real role; unlisted real role forced to subscriber; 'administrator' submitted directly (bypassing the dropdown UI entirely, simulating a tampered request) forced to subscriber; a role present in BOTH lists resolves to subscriber (confirming exclude wins); a blank submission triggers no role change; a SQLi/XSS-style injected string resolves safely to subscriber.",
+          "called_by": ["Registration_Fields::save_fields"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Account/class-account-phone-field.php",
+      "purpose": "Adds a phone field to My Account > Account details, backed by the billing_phone user meta key WooCommerce itself uses at checkout.",
+      "exports": ["HexWp\\Account\\Account_Phone_Field"],
+      "depends_on": ["includes/Account/class-settings.php"],
+      "functions": [
+        {
+          "name": "Account_Phone_Field::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_field to woocommerce_edit_account_form, save_field to woocommerce_save_account_details.",
+          "called_by": ["class-plugin.php:maybe_register_woocommerce_features"]
+        },
+        {
+          "name": "Account_Phone_Field::render_field",
+          "signature": "render_field(): void",
+          "description": "Bails if Settings::get()['account_field_visibility']['phone'] is off (as of 2026-07-31 — was a standalone 'account_phone_enabled' key before that). Otherwise prints the field prefilled from get_user_meta(billing_phone). No manual DOM-reordering JS needed — woocommerce_edit_account_form already fires right after WooCommerce's own email field.",
+          "called_by": ["woocommerce_edit_account_form action"]
+        },
+        {
+          "name": "Account_Phone_Field::save_field",
+          "signature": "save_field(int $user_id): void",
+          "description": "Same account_field_visibility.phone gate as render_field(). sanitize_text_field(wp_unslash())s $_POST['account_phone'] and update_user_meta()s billing_phone. No extra nonce check needed — WooCommerce's own 'save-account-details' nonce already gates this hook.",
+          "called_by": ["woocommerce_save_account_details action"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Account/class-account-field-visibility.php",
+      "purpose": "Hides whichever My Account > Account details fields an admin has turned off (Settings::get()['account_field_visibility']). WooCommerce's first name/last name/display name/email/password fields are hardcoded into its own form-edit-account.php template with no per-field filter, so the only way to hide one (short of overriding that whole template, which this plugin deliberately avoids) is CSS — the field is still technically in the DOM and still posts its existing value on save (a harmless no-op), it's just not shown or editable. 'phone' is not handled here at all — it's entirely ours, so Account_Phone_Field simply skips rendering it when off (a true hide, added 2026-07-31 alongside this class).",
+      "exports": ["HexWp\\Account\\Account_Field_Visibility"],
+      "depends_on": ["includes/Account/class-settings.php"],
+      "functions": [
+        {
+          "name": "Account_Field_Visibility::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_visibility_css to woocommerce_edit_account_form_start (fires at the very top of the edit-account form, before WooCommerce's own first_name field, so the injected <style> block applies regardless of field order).",
+          "called_by": ["class-plugin.php:maybe_register_woocommerce_features"]
+        },
+        {
+          "name": "Account_Field_Visibility::render_visibility_css",
+          "signature": "render_visibility_css(): void",
+          "description": "For each visibility key that's off, builds 'p:has(#field-id){display:none}' selectors from the fixed self::FIELD_SELECTORS map (WooCommerce's own field ids: #account_first_name, #account_last_name, #account_display_name, #account_email, #password_current, #password_1, #password_2) and echoes one combined <style> block if any are hidden. Selectors are a hardcoded whitelist, not user input, so no escaping is needed on the echo.",
+          "called_by": ["woocommerce_edit_account_form_start action"]
+        }
+      ]
+    },
+    {
+      "path": "includes/Account/class-login-register-tabs.php",
+      "purpose": "Turns the My Account page's combined Login/Register form into a tabbed layout. CSS (hiding/showing forms) and JS (tab clicks) are each their own admin switch. Which tab is active on page load (get_active_tab(), M10) tracks which form was actually submitted, so a validation error on Register keeps Register active instead of reverting to Login.",
+      "exports": ["HexWp\\Account\\Login_Register_Tabs"],
+      "depends_on": ["includes/Account/class-settings.php", "assets/css/account-tabs.css", "assets/js/account-tabs.js"],
+      "functions": [
+        {
+          "name": "Login_Register_Tabs::register_hooks",
+          "signature": "register_hooks(): void",
+          "description": "Hooks render_tab_buttons to woocommerce_before_customer_login_form, enqueue_assets to wp_enqueue_scripts.",
+          "called_by": ["class-plugin.php:maybe_register_woocommerce_features"]
+        },
+        {
+          "name": "Login_Register_Tabs::render_tab_buttons",
+          "signature": "render_tab_buttons(): void",
+          "description": "Bails if login_register_tabs_enabled is off. Otherwise prints the Login/Register button markup (.hexwp-account-tabs), with a data-active-tab=\"login|register\" attribute (from get_active_tab(), added 2026-07-31/M10) on the wrapper and the matching button's 'active' class set server-side, not just via JS.",
+          "called_by": ["woocommerce_before_customer_login_form action"]
+        },
+        {
+          "name": "Login_Register_Tabs::get_active_tab",
+          "signature": "get_active_tab(): string (private)",
+          "description": "Added 2026-07-31 (M10) to fix a reported bug: any validation error on the Register form redisplayed the page with the Login tab active, since the tabs' visibility state previously had no server-side memory of which form was submitted — only account-tabs.js (a click handler) ever set it, and a page reload doesn't fire a click. Returns 'register' if $_POST['woocommerce-register-nonce'] is set (the hidden nonce field WooCommerce's own Register form always posts, regardless of whether that submission succeeds or fails — read here purely as a 'which form was this' signal, not verified as a security check), else 'login'.",
+          "called_by": ["Login_Register_Tabs::render_tab_buttons"]
+        },
+        {
+          "name": "Login_Register_Tabs::enqueue_assets",
+          "signature": "enqueue_assets(): void",
+          "description": "Only on is_account_page() and only if login_register_tabs_enabled. Enqueues account-tabs.css if login_register_css_enabled, account-tabs.js if login_register_js_enabled — independently, so either can be turned off on its own (e.g. a theme supplies its own CSS but still wants our JS).",
+          "called_by": ["wp_enqueue_scripts action"]
+        }
+      ]
     },
     {
       "path": "templates/b2b-settings-page.php",
       "purpose": "View for the 'B2B Pricing' admin settings page: enable toggle, role checklist, meta key input, tax exemption toggle, and custom price-suffix inputs. All dynamic output passes through esc_html/esc_attr; checkbox state via checked().",
       "exports": [],
       "depends_on": [],
+      "functions": []
+    },
+    {
+      "path": "templates/account-settings-page.php",
+      "purpose": "View for the 'Registration & Account' admin settings page. Three cards: (1) Registration Form Fields — core First/Last name/Phone switches, each now paired with its own 'Field label' text input (2026-07-31/M12: first_name_label/last_name_label/phone_label); a 'Customer Type' section (Shown/Required switches; as of 2026-07-31/M12, two searchable checkbox-list widgets — 'Include' and 'Exclude' — rendered via a shared $hexwp_render_role_picker($field_name, $roles, $selected) closure, replacing M11's native <select multiple>s that the project owner reported as unusable (ctrl/cmd-click not discoverable, impossible on touch); 3 free-text inputs for field label/placeholder/required-error text, kept from M10); and a 'Custom Fields' repeater (add/remove rows via account-settings.js, index placeholder __INDEX__ swapped for a real index client-side); (2) Account Details Page Fields — one Visible switch per My Account field, no master toggle since it's inherently per-field; (3) Login/Register Tabs — master switch + CSS/JS sub-switches. Defines two local closures — $hexwp_render_custom_field_row and (M12) $hexwp_render_role_picker — rather than global functions, since a repeated require of this file in the same request would redeclare a global one; $hexwp_render_role_picker is called twice (Include/Exclude) with different field names, same underlying markup. All dynamic output passes through esc_html/esc_attr/esc_html__; checkbox/select state via checked()/selected().",
+      "exports": [],
+      "depends_on": ["includes/Account/class-settings.php (Settings::CUSTOM_FIELD_TYPES and Settings::available_roles(), referenced by fully-qualified name since this file has no namespace declaration)"],
       "functions": []
     },
     {
@@ -408,5 +571,6 @@
     "testing": "No test suite present. README suggests php -l lint checks only; no PHPUnit/WP test scaffolding exists yet."
   },
 
-  "last_full_resync": "2026-07-30"
+  "last_full_resync": "2026-07-30",
+  "note": "Not a full resync. 2026-07-31 (M6): added entries for the new HexWp\\Account feature and flagged (but did not fully document) pre-existing drift in includes/WooCommerce/class-variation-filter-toolbar.php, class-stock-field.php, and class-stock-engine.php. 2026-07-31 (M7, same day): updated entries for the common-admin-menu restructure, the registration custom-fields repeater, and full My Account field visibility; also removed 3 file entries (includes/Admin/class-admin-page.php, includes/Frontend/class-shortcode.php, templates/admin-page.php) that turned out not to exist on disk at all — see decisions_log in claude.json. Variation_Filter_Toolbar/Stock_Field/Stock_Engine remain undocumented in detail; see needs_resync in claude.json."
 }

@@ -8,18 +8,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Admin page under wp-admin: "B2B Pricing". Shows the settings form and
-// saves it via AJAX (no full page reload) using WordPress's admin-ajax.php.
+// Admin page under wp-admin: "B2B Pricing", the first item under the
+// plugin's common top-level menu (see register_menu()). Shows the settings
+// form and saves it via AJAX (no full page reload) using admin-ajax.php.
 class B2B_Settings_Page {
-    // WordPress's generated admin_enqueue_scripts hook suffix for a top-level
-    // add_menu_page() with slug 'hex-wp-b2b-pricing'. Used to only load our
-    // CSS/JS on this one admin screen, not every wp-admin page.
-    const SCREEN_HOOK = 'toplevel_page_hex-wp-b2b-pricing';
+    // The plugin's single top-level wp-admin menu slug. Every other
+    // HexWp admin page (Account_Settings_Page, ...) is registered as a
+    // submenu of this same slug rather than getting its own top-level entry.
+    const MENU_SLUG = 'hex-wp-b2b-pricing';
 
     // The "action" name the browser sends to admin-ajax.php, and the nonce
     // action name used to prove the request came from our own settings form.
     const AJAX_ACTION = 'hex_wp_save_b2b_settings';
     const NONCE_ACTION = 'hex_wp_b2b_settings_ajax';
+
+    // admin_enqueue_scripts hook suffix for this page, captured from
+    // add_submenu_page()'s own return value in register_menu() rather than
+    // guessed as a string — WordPress derives this suffix from the sanitized
+    // *title* of the top-level menu (not its slug), so hardcoding it here
+    // silently breaks the moment that title text changes (including per
+    // locale, since it's translated). Only add_menu_page()/add_submenu_page()
+    // know the real value.
+    private $screen_hook;
 
     public function register_hooks() {
         \add_action('admin_menu', [$this, 'register_menu']);
@@ -29,25 +39,44 @@ class B2B_Settings_Page {
         \add_action('wp_ajax_' . self::AJAX_ACTION, [$this, 'handle_ajax_save']);
     }
 
-    // Adds the "B2B Pricing" item to the wp-admin left-hand menu.
+    // Creates the plugin's one common top-level wp-admin menu, with this
+    // page ("B2B Pricing") as its first item. Every other settings page
+    // (Account_Settings_Page, etc.) attaches to self::MENU_SLUG as a
+    // submenu instead of calling add_menu_page() itself.
     public function register_menu() {
         // Uses manage_options (not manage_woocommerce) so admins can still
-        // reach this page even if WooCommerce is deactivated.
+        // reach this menu even if WooCommerce is deactivated.
         \add_menu_page(
+            \__('B2B Customer Addon', HEX_WP_TEXT_DOMAIN),
+            \__('B2B Customer Addon', HEX_WP_TEXT_DOMAIN),
+            'manage_options',
+            self::MENU_SLUG,
+            [$this, 'render_page'],
+            'dashicons-store',
+            56
+        );
+
+        // add_menu_page() above also creates a first submenu item labeled
+        // the same as the top-level entry ("B2B Customer Addon"). Re-adding
+        // a submenu with the exact same slug relabels that one entry to
+        // "B2B Pricing" instead, without changing its slug/callback — the
+        // standard WordPress pattern for a "landing page IS a real submenu
+        // item" top-level menu. Its return value is the actual hook suffix
+        // WordPress will pass to admin_enqueue_scripts for this screen.
+        $this->screen_hook = \add_submenu_page(
+            self::MENU_SLUG,
             \__('B2B Pricing Settings', HEX_WP_TEXT_DOMAIN),
             \__('B2B Pricing', HEX_WP_TEXT_DOMAIN),
             'manage_options',
-            'hex-wp-b2b-pricing',
-            [$this, 'render_page'],
-            'dashicons-groups',
-            56
+            self::MENU_SLUG,
+            [$this, 'render_page']
         );
     }
 
     // Loads our CSS/JS, but only when the current admin screen is our own
     // settings page (WordPress calls this on every admin page load).
     public function enqueue_assets($hook) {
-        if ($hook !== self::SCREEN_HOOK) {
+        if ($hook !== $this->screen_hook) {
             return;
         }
 

@@ -1,0 +1,213 @@
+/* Registration & Account settings page — page-specific layout only.
+   Card/switch/notice/save-bar look is shared with the B2B Pricing settings
+   page via b2b-admin.css (enqueued alongside this file), so it isn't
+   duplicated here. */
+
+.hexwp-account-page {
+    max-width: none;
+    box-sizing: border-box;
+    margin-top: 20px;
+}
+
+.hexwp-account-page * {
+    box-sizing: border-box;
+}
+
+.hexwp-account-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.hexwp-account-header h1 {
+    margin-bottom: 4px;
+    padding: 0;
+}
+
+.hexwp-account-subtitle {
+    max-width: 760px;
+    color: #50575e;
+    margin: 0;
+}
+
+.hexwp-account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .hexwp-account-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Per-card header row: title + this card's own Enabled/Disabled pill. */
+.hexwp-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.hexwp-card-header h2 {
+    margin: 0;
+}
+
+/* A group of related sub-toggles inside a card (e.g. one row per field). */
+.hexwp-subfield-group {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f1;
+}
+
+.hexwp-subfield-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    padding: 8px 0;
+}
+
+.hexwp-subfield-row + .hexwp-subfield-row {
+    border-top: 1px solid #f6f7f7;
+}
+
+.hexwp-subfield-name {
+    flex: 1 1 auto;
+    font-weight: 600;
+}
+
+.hexwp-subfield-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.hexwp-switch-row-spaced {
+    margin-top: 12px;
+}
+
+/* Cards with a repeater or a long field list read better at full grid
+   width instead of squeezed into one half of the 2-column layout. */
+.hexwp-card-wide {
+    grid-column: 1 / -1;
+}
+
+.hexwp-repeater-heading {
+    margin: 0 0 4px;
+    font-size: 13px;
+}
+
+/* Inside a repeater row's grid, .hexwp-field (from b2b-admin.css) doesn't
+   need its usual stacked top margin — the row's own padding handles spacing. */
+.hexwp-field-tight {
+    margin-top: 0;
+}
+
+#hexwp-custom-fields-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.hexwp-repeater-row {
+    padding: 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+
+.hexwp-repeater-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto auto;
+    align-items: end;
+    gap: 12px;
+}
+
+@media (max-width: 700px) {
+    .hexwp-repeater-grid {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+}
+
+.hexwp-repeater-required {
+    padding-bottom: 8px;
+    white-space: nowrap;
+}
+
+.hexwp-repeater-remove {
+    white-space: nowrap;
+}
+
+.hexwp-repeater-add {
+    margin-top: 12px;
+}
+
+/* Searchable checkbox-list role picker (Include/Exclude), replacing a
+   native <select multiple> — see account-settings.js for the filtering
+   logic. */
+.hexwp-role-picker {
+    max-width: 360px;
+    border: 1px solid #8c8f94;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.hexwp-role-picker-search {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 1px solid #dcdcde;
+    border-radius: 0;
+    background: #f6f7f7;
+}
+
+.hexwp-role-picker-search:focus {
+    outline: none;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--wp-admin-theme-color, #2271b1);
+}
+
+.hexwp-role-picker-list {
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.hexwp-role-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.hexwp-role-picker-item:hover {
+    background: #f6f7f7;
+}
+
+.hexwp-role-picker-item input {
+    margin: 0;
+}
+
+.hexwp-role-picker-item:has(input:checked) {
+    background: #f0f6fc;
+}
+
+.hexwp-role-picker-empty {
+    padding: 10px;
+    color: #757575;
+    font-size: 13px;
+    font-style: italic;
+}
