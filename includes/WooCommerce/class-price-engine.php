@@ -25,11 +25,12 @@ class Price_Engine {
         // after picking a variation needs its own filter.
         \add_filter('woocommerce_available_variation', [$this, 'apply_b2b_price_to_variation_data'], 10, 3);
 
-        // Show/charge tax excluded for B2B customers, if enabled.
-        \add_filter('woocommerce_tax_display_shop', [$this, 'filter_tax_display']);
-        \add_filter('woocommerce_tax_display_cart', [$this, 'filter_tax_display']);
-        \add_action('woocommerce_before_calculate_totals', [$this, 'maybe_set_tax_exempt']);
-        \add_action('template_redirect', [$this, 'maybe_set_tax_exempt']);
+        // Charge no tax on a line item, but only when BOTH the shopper is
+        // B2B AND this exact product/variation has a B2B price set — see
+        // maybe_exempt_product_from_tax() for why this replaced a pair of
+        // cart-wide/site-wide overrides that used to leak onto normal
+        // (non-B2B-priced) products.
+        \add_filter('woocommerce_product_is_taxable', [$this, 'maybe_exempt_product_from_tax'], 10, 2);
 
         // Replace the small suffix text after the price, if enabled.
         \add_filter('woocommerce_get_price_suffix', [$this, 'filter_price_suffix'], 10, 2);
@@ -108,50 +109,55 @@ class Price_Engine {
             : \wc_get_price_including_tax($product, ['price' => $price]);
     }
 
-    // Tells WooCommerce whether to display prices "incl." or "excl." tax.
-    public function filter_tax_display($display) {
+    // Whether tax applies to this specific product/variation. WooCommerce
+    // checks this per line item during cart/checkout totals (WC_Cart_Totals
+    // ::get_rates_for_item()), so exemption naturally follows each product
+    // instead of the whole cart/customer — a mixed cart of B2B-priced and
+    // normal products taxes only the B2B-priced ones.
+    //
+    // A previous version used WC()->customer->set_is_vat_exempt(true) and a
+    // woocommerce_tax_display_shop/_cart override instead. Both are
+    // cart-wide/site-wide flags with no concept of "this one product", so
+    // they exempted (or showed as excl. tax) every product a B2B customer
+    // looked at — including ones with no B2B price at all, where behavior
+    // should have stayed completely default.
+    public function maybe_exempt_product_from_tax($is_taxable, $product) {
         $settings = Settings::get();
 
-        if (!empty($settings['tax_exempt_enabled']) && Customer::is_b2b()) {
-            return 'excl';
+        if (empty($settings['tax_exempt_enabled']) || !Customer::is_b2b()) {
+            return $is_taxable; // default: leave WooCommerce's normal taxable status alone
         }
 
-        return $display; // leave WooCommerce's normal setting untouched
-    }
-
-    // Actually exempts the customer from tax during totals calculation
-    // (filter_tax_display() above only changes what's shown, not what's charged).
-    public function maybe_set_tax_exempt() {
-        $settings = Settings::get();
-
-        if (empty($settings['tax_exempt_enabled'])) {
-            return;
+        $b2b_price = \get_post_meta($product->get_id(), Settings::PRICE_META_KEY, true);
+        if ($b2b_price === '' || !\is_numeric($b2b_price)) {
+            return $is_taxable; // no B2B price on this product: stays taxed normally
         }
 
-        if (Customer::is_b2b() && \WC()->customer) {
-            \WC()->customer->set_is_vat_exempt(true);
-        }
+        return false; // B2B customer + B2B price on this exact product: tax-exempt
     }
 
     // The short text shown right after a price, e.g. "zzgl. MwSt." or "inkl. MwSt.".
     public function filter_price_suffix($suffix, $product) {
         $settings = Settings::get();
 
-        // The suffix text is specifically about tax status ("zzgl./inkl.
-        // MwSt."), so it only makes sense while tax exemption is actually
-        // in play. Tax exemption off: same suffix as everyone else gets.
-        if (empty($settings['price_suffix_enabled']) || empty($settings['tax_exempt_enabled'])) {
+        // Suffix override is its own on/off switch — independent of tax
+        // exemption, which is a separate feature. Switched off: leave
+        // whatever suffix WooCommerce/the theme would normally show.
+        if (empty($settings['price_suffix_enabled'])) {
             return $suffix;
         }
 
-        // Only override the suffix for products that actually have a B2B
-        // price set — otherwise leave the default suffix alone, same as price.
+        // The B2B suffix only applies when BOTH conditions hold: the
+        // shopper is B2B (per the configured roles) AND this exact
+        // product/variation has a B2B price set. Any other combination
+        // (not B2B, or no B2B price here) falls back to the admin's
+        // "regular" suffix text — never a mix of the two.
         $b2b_price = \get_post_meta($product->get_id(), Settings::PRICE_META_KEY, true);
-        if ($b2b_price === '' || !\is_numeric($b2b_price)) {
-            return $suffix;
-        }
+        $has_b2b_price = ($b2b_price !== '' && \is_numeric($b2b_price));
 
-        $text = Customer::is_b2b() ? $settings['price_suffix_b2b'] : $settings['price_suffix_regular'];
+        $text = (Customer::is_b2b() && $has_b2b_price)
+            ? $settings['price_suffix_b2b']
+            : $settings['price_suffix_regular'];
 
         // Same wrapper WooCommerce's own default suffix uses (' <small
         // class="woocommerce-price-suffix">...</small>'), so theme styling

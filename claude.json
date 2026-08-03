@@ -3,7 +3,7 @@
   "scope_boundary_folders": [
     "wp-content/plugins/wp-b2b-cutomer-products-addon"
   ],
-  "last_updated": "2026-07-31",
+  "last_updated": "2026-08-02",
   "status": "in_progress",
 
   "current_focus": "M1-M12 done. M6-M8 built and then bugfixed the HexWp\\Account feature (registration fields, account phone/visibility, login/register tabs, common admin menu). M9 added a 'Customer Type' registration dropdown; M10 made its text admin-customizable and fixed CSS/tab-persistence bugs. M11 (major redesign) replaced M9's fixed/invented type catalog with real WordPress roles applied as the account's actual role via admin-configured Include/Exclude lists — 'administrator' unconditionally excluded from the one shared role pool both lists draw from, verified against direct-injection attempts. M12 (same day) made First/Last name/Phone field labels admin-customizable (same free-text pattern as Customer Type's own text) and replaced the M11 native <select multiple> Include/Exclude controls with a searchable checkbox-list widget, since the project owner reported the native control 'cannot correctly select' (ctrl/cmd-click isn't discoverable and doesn't work on touch devices) — field names unchanged, so the AJAX save handler needed no changes, only the admin template/CSS/JS. NOT verified in a live WordPress/WooCommerce browser session anywhere in M6-M12 (no such environment available here) — only via php -l, node --check, manual CSS balance checks, and extensive standalone PHP smoke tests with stubbed WP functions. The project owner should register real test accounts end-to-end (one hitting an included role, one hitting an excluded role) and confirm the new search-and-check role picker feels usable in an actual wp-admin screen. Open items: I4 (info-level naming mismatch, no action needed) and the needs_resync list (Variation_Filter_Toolbar/Stock_Field/Stock_Engine — undocumented pre-existing code, not yet audited since no session's task has touched them).",
@@ -125,6 +125,22 @@
       "description": "Naming/purpose mismatch: index.php's plugin header says 'Woo Custom Price for User Role Addon' (implying WooCommerce custom pricing per user role), the folder is named wp-b2b-cutomer-products-addon (implying B2B customer/product logic), but the actual code is an unmodified 'Hexnity WP Plugin Template' demo that just saves/lists arbitrary text strings — there is no WooCommerce, pricing, user-role, or B2B product logic anywhere yet. This is expected for a fresh template but the project owner should confirm the real feature scope before further building.",
       "severity": "info",
       "status": "open"
+    },
+    {
+      "id": "I5",
+      "description": "Price_Engine::filter_price_suffix() (includes/WooCommerce/class-price-engine.php) required BOTH price_suffix_enabled AND tax_exempt_enabled to be on before the B2B price suffix could ever show, and returned before checking the customer's role whenever the product had no '_b2b_price' set. Reported by project owner: 'if both available and suffix enable, then suffix should apply. else everything should be default' — tax_exempt_enabled has nothing to do with the suffix toggle, so turning on 'Override the price suffix' alone silently did nothing unless tax exemption was also enabled.",
+      "severity": "medium",
+      "status": "fixed",
+      "fixed_on": "2026-08-02",
+      "resolution": "filter_price_suffix() now only checks price_suffix_enabled. Shows price_suffix_b2b only when BOTH Customer::is_b2b() AND this exact product/variation has a numeric '_b2b_price'; every other case shows price_suffix_regular. No more tax_exempt_enabled dependency."
+    },
+    {
+      "id": "I6",
+      "description": "Price_Engine::filter_tax_display() (hooked to woocommerce_tax_display_shop/_cart) and Price_Engine::maybe_set_tax_exempt() (calling WC()->customer->set_is_vat_exempt(true)) only checked Customer::is_b2b() + tax_exempt_enabled — never whether the specific product/variation actually had a '_b2b_price' set. Both hooks are cart-wide/site-wide (no per-product context), so ANY B2B-role customer got tax-excluded pricing and full VAT exemption on EVERY product they viewed or bought, including ones with no B2B price configured at all — breaking the 'no B2B price = fully default price AND tax' rule the project owner described ('in default situation, tax calculation also should be default. if role is b2b and price available then the plugin admin panel tax logic should apply').",
+      "severity": "high",
+      "status": "fixed",
+      "fixed_on": "2026-08-02",
+      "resolution": "Replaced both hooks with a single Price_Engine::maybe_exempt_product_from_tax() filter on woocommerce_product_is_taxable, which WooCommerce's own cart tax calculation (WC_Cart_Totals::get_rates_for_item()) checks per line item and which receives the specific $product. Returns not-taxable only when tax_exempt_enabled AND Customer::is_b2b() AND this exact product/variation has a numeric '_b2b_price'; otherwise returns WooCommerce's default taxable status unchanged, so a mixed cart taxes only the B2B-priced line items and non-B2B-priced products stay fully default for both price and tax."
     }
   ],
 

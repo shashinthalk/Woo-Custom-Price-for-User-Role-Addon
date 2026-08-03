@@ -269,21 +269,21 @@
           "called_by": ["WooCommerce price HTML rendering"]
         },
         {
-          "name": "Price_Engine::filter_tax_display",
-          "signature": "filter_tax_display($display)",
-          "description": "Filters woocommerce_tax_display_shop / _cart. Forces 'excl' for B2B customers when tax_exempt_enabled is on.",
-          "called_by": ["WooCommerce tax display logic"]
+          "name": "Price_Engine::apply_b2b_price_to_variation_data",
+          "signature": "apply_b2b_price_to_variation_data($variation_data, $product, $variation)",
+          "description": "Filters woocommerce_available_variation (the per-variation JSON WooCommerce sends to the browser after a variation is picked). Same is_b2b()+numeric-_b2b_price gate as apply_b2b_price/apply_b2b_price_html; overwrites display_price/display_regular_price/price_html so the on-page price updates to match.",
+          "called_by": ["WooCommerce variation AJAX response"]
         },
         {
-          "name": "Price_Engine::maybe_set_tax_exempt",
-          "signature": "maybe_set_tax_exempt(): void",
-          "description": "Hooked to woocommerce_before_calculate_totals and template_redirect. Sets WC()->customer->set_is_vat_exempt(true) for B2B customers when tax_exempt_enabled is on.",
-          "called_by": ["WooCommerce cart totals calculation", "template_redirect"]
+          "name": "Price_Engine::maybe_exempt_product_from_tax",
+          "signature": "maybe_exempt_product_from_tax($is_taxable, $product)",
+          "description": "As of 2026-08-02 (bugfix): filters woocommerce_product_is_taxable, replacing the old filter_tax_display()/maybe_set_tax_exempt() pair. Those hooked woocommerce_tax_display_shop/_cart and called WC()->customer->set_is_vat_exempt(true) — both are cart-wide/site-wide flags with no per-product context, so ANY B2B-role customer got tax-excluded/exempted treatment on EVERY product they viewed or bought, including ones with no '_b2b_price' meta set, breaking the 'no B2B price = fully default price/tax' rule. woocommerce_product_is_taxable receives $product and is checked per line item by WC_Cart_Totals::get_rates_for_item(), so this version returns false (not taxable) only when BOTH tax_exempt_enabled is on AND Customer::is_b2b() AND this exact product/variation has a numeric '_b2b_price'; any other combination returns the default $is_taxable unchanged, so mixed carts tax only the B2B-priced line items.",
+          "called_by": ["WooCommerce cart/checkout tax calculation (WC_Cart_Totals::get_rates_for_item -> $product->is_taxable())"]
         },
         {
           "name": "Price_Engine::filter_price_suffix",
           "signature": "filter_price_suffix($suffix, $product)",
-          "description": "Filters woocommerce_get_price_suffix. Only overrides the suffix when price_suffix_enabled is on; otherwise passes the theme/WooCommerce default through unchanged.",
+          "description": "Filters woocommerce_get_price_suffix. As of 2026-08-02 (bugfix): only gated by price_suffix_enabled now (previously also required tax_exempt_enabled, incorrectly coupling two independent settings so the suffix override silently did nothing whenever tax exemption was off). When enabled, shows price_suffix_b2b ONLY if the shopper is B2B AND this exact product/variation has a numeric '_b2b_price'; every other case (not B2B, or no B2B price here) shows price_suffix_regular — never a mix, and never gated on tax settings.",
           "called_by": ["WooCommerce price suffix rendering"]
         }
       ]
